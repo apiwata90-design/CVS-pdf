@@ -1,6 +1,6 @@
 // Service worker: lets the app open offline and be installed to the home screen.
 // Bump CACHE when shipping a new version so old files are cleared.
-const CACHE = 'cvs-v2';
+const CACHE = 'cvs-v4';
 const SHELL = [
   './',
   './index.html',
@@ -26,7 +26,10 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   const req = e.request;
-  if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
+  const url = new URL(req.url);
+  if (req.method !== 'GET' || url.origin !== location.origin) return;
+  // Lecture PDFs are kept in IndexedDB by the app, and the list must stay fresh: let them hit the network.
+  if (url.pathname.includes('/lectures/')) return;
 
   // Pages: network first, so a new version shows up as soon as you are online.
   if (req.mode === 'navigate') {

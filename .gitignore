@@ -5,3 +5,4 @@ Thumbs.db
 _preview*.png
 _preview*.html
 _test/
+!lectures/*.pdf

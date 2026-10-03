@@ -138,6 +138,8 @@
   .item .num { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; text-align: right; padding-right: 4px; }
   .item .title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .item.read .title { color: var(--muted); }
+  /* shared lecture not downloaded to this device yet */
+  .item.cloud .title::before { content: '☁ '; color: var(--muted); }
   .item .title input { width: 100%; padding: 2px 4px; border: 1px solid var(--accent); border-radius: 4px; background: var(--bg); }
   .item .del {
     border: 0; background: none; color: var(--muted); border-radius: 6px;
@@ -226,6 +228,31 @@
     border: 2px dashed var(--accent); font-size: 18px; box-shadow: var(--shadow);
   }
 
+  /* locked Drive link */
+  .empty .acts { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .modal {
+    position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; padding: 16px;
+    background: rgba(0, 0, 0, .45);
+  }
+  .sheet {
+    width: min(100%, 380px); padding: 20px; border-radius: 14px; background: var(--panel);
+    border: 1px solid var(--line); box-shadow: var(--shadow);
+  }
+  .sheet h3 { margin: 0 0 4px; font-size: 16px; }
+  .sheet p { margin: 0 0 12px; color: var(--muted); font-size: 13px; }
+  .sheet input {
+    width: 100%; padding: 9px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg);
+    font-size: 16px; /* 16px stops iPhone from zooming in on focus */
+  }
+  .sheet .err { margin-top: 6px; color: var(--accent); font-size: 12.5px; }
+  .sheet .row { display: flex; justify-content: flex-end; gap: 6px; margin-top: 14px; }
+  .sheet .link {
+    display: block; padding: 10px 12px; border-radius: 8px; background: var(--bg); border: 1px solid var(--line);
+    color: var(--sel-line); word-break: break-all; font-size: 13px; margin-bottom: 10px;
+  }
+  .sheet.shake { animation: shake .3s; }
+  @keyframes shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+
   .toast {
     position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 60;
     padding: 10px 16px; border-radius: 10px; background: var(--ink); color: var(--bg);
@@ -278,6 +305,7 @@
     <div class="add-row">
       <button class="btn primary" id="addBtn">＋ เพิ่ม PDF</button>
       <button class="btn" id="sortBtn" title="เรียงทุกไฟล์ตามชื่อที่แสดง">เรียง A→Z</button>
+      <button class="btn" id="linkBtn" title="ลิงก์ดาวน์โหลดไฟล์ lecture (ต้องใส่รหัส)">🔒</button>
     </div>
     <div class="tools">
       <input id="search" type="search" placeholder="ค้นหา lecture…" autocomplete="off">
@@ -319,7 +347,10 @@
           <div class="heart">♥</div>
           <h2 id="emptyTitle"></h2>
           <p id="emptyText"></p>
-          <button class="btn primary" id="emptyAdd">＋ เลือกไฟล์ PDF</button>
+          <div class="acts">
+            <button class="btn primary" id="emptyAdd">＋ เลือกไฟล์ PDF</button>
+            <button class="btn" id="emptyLink">🔒 ลิงก์ดาวน์โหลดไฟล์ lecture</button>
+          </div>
         </div>
       </div>
       <div class="pager" id="pager" hidden>
@@ -338,6 +369,28 @@
 <input type="file" id="picker" accept="application/pdf,.pdf" multiple hidden>
 <div class="drop-overlay" id="dropOverlay" hidden><div>วางไฟล์ PDF ตรงนี้</div></div>
 <div class="toast" id="toast" hidden></div>
+<div class="modal" id="linkModal" hidden>
+  <form class="sheet" id="linkForm" autocomplete="off">
+    <h3>ลิงก์ไฟล์ lecture</h3>
+    <div id="linkLocked">
+      <p>ใส่รหัสเพื่อแสดงลิงก์ Google Drive</p>
+      <input id="linkPass" type="password" placeholder="รหัส" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <div class="err" id="linkErr" hidden></div>
+      <div class="row">
+        <button type="button" class="btn" data-close>ปิด</button>
+        <button type="submit" class="btn primary" id="linkGo">ปลดล็อก</button>
+      </div>
+    </div>
+    <div id="linkOpen" hidden>
+      <p>เปิดลิงก์ ดาวน์โหลดไฟล์ลงเครื่อง แล้วกลับมากด ＋ เพิ่ม PDF</p>
+      <a class="link" id="linkA" target="_blank" rel="noopener noreferrer"></a>
+      <div class="row">
+        <button type="button" class="btn" id="linkCopy">คัดลอก</button>
+        <button type="button" class="btn primary" data-close>ปิด</button>
+      </div>
+    </div>
+  </form>
+</div>
 
 <script src="vendor/pdf.min.js"></script>
 <script>
@@ -348,6 +401,7 @@
   const LS = {
     collapsed: 'cvs.collapsed', profile: 'cvs.profile', profiles: 'cvs.profiles', zoom: 'cvs.zoom',
     last: (p) => 'cvs.last.' + p, legacyLast: 'cvs.lastId',
+    hiddenRemote: 'cvs.hiddenRemote',   // lectures/ files the user deleted on this device
   };
 
   const pdfjs = window.pdfjsLib || null;
@@ -383,6 +437,8 @@
   const selected = new Set();
   let anchorId = null;
   let shownIds = [];
+  const cached = new Set();     // ids whose PDF is stored on this device
+  const downloads = new Map();  // id → in-flight download promise
 
   const inProfile = (p = activeProfile) => items.filter((m) => profOf(m) === p);
 
@@ -427,6 +483,76 @@
   async function loadMeta() {
     const all = await reqP(db.transaction('meta').objectStore('meta').getAll());
     items = all.sort((a, b) => a.order - b.order);
+    const keys = await reqP(db.transaction('blobs').objectStore('blobs').getAllKeys());
+    cached.clear();
+    keys.forEach((k) => cached.add(k));
+  }
+
+  /* ---------- shared lectures (lectures/index.json on the website) ---------- */
+  const hiddenRemote = () => { try { return new Set(JSON.parse(lsGet(LS.hiddenRemote)) || []); } catch { return new Set(); } };
+  const remoteUrl = (src) => src.split('/').map(encodeURIComponent).join('/');
+
+  // Adds any file listed on the website that this device doesn't have yet.
+  // Only the list is fetched here; each PDF downloads the first time it is opened.
+  async function syncRemote() {
+    if (!location.protocol.startsWith('http')) return;
+    let list;
+    try {
+      const res = await fetch('lectures/index.json', { cache: 'no-cache' });
+      if (!res.ok) return;
+      list = await res.json();
+    } catch { return; }
+    if (!Array.isArray(list)) return;
+    const hidden = hiddenRemote();
+    const haveSrc = new Set(items.map((m) => m.src).filter(Boolean));
+    // A file uploaded by hand earlier counts as the same lecture when the size matches.
+    const haveSize = new Set(items.filter((m) => !m.src).map((m) => m.size));
+    let order = items.length;
+    const added = [];
+    for (const f of list) {
+      const src = 'lectures/' + f.file;
+      if (haveSrc.has(src) || hidden.has(src) || haveSize.has(f.size)) continue;
+      added.push({ id: newId(), name: f.file, title: cleanTitle(f.file), size: f.size, order: order++, read: false, profile: 1, src });
+    }
+    if (!added.length) return;
+    await saveMeta(added);
+    items.push(...added);
+    toast(`มี lecture ใหม่ ${added.length} ไฟล์`);
+  }
+
+  function download(meta, token) {
+    if (downloads.has(meta.id)) return downloads.get(meta.id);
+    const p = (async () => {
+      const res = await fetch(remoteUrl(meta.src));
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const total = +res.headers.get('content-length') || meta.size;
+      let blob;
+      if (res.body && total) {
+        const reader = res.body.getReader();
+        const parts = [];
+        let got = 0;
+        for (;;) {
+          const { done: end, value } = await reader.read();
+          if (end) break;
+          parts.push(value);
+          got += value.length;
+          if (token === V.token) showStatus(`กำลังดาวน์โหลด… ${Math.min(99, Math.round(got / total * 100))}%`);
+        }
+        blob = new Blob(parts, { type: 'application/pdf' });
+      } else {
+        blob = await res.blob();
+      }
+      const t = db.transaction('blobs', 'readwrite');
+      t.objectStore('blobs').put({ id: meta.id, blob });
+      await done(t);
+      cached.add(meta.id);
+      if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+      render();
+      return blob;
+    })();
+    downloads.set(meta.id, p);
+    p.finally(() => downloads.delete(meta.id)).catch(() => {});
+    return p;
   }
   async function saveMeta(list) {
     const t = db.transaction('meta', 'readwrite');
@@ -474,10 +600,14 @@
 
     if (!pdfjs) { showStatus('โหลดตัวอ่าน PDF ไม่ได้ — ต้องมีโฟลเดอร์ vendor อยู่ข้างไฟล์ index.html'); return; }
     showStatus('กำลังโหลด…');
+    let fetching = false;
     try {
       const rec = await reqP(db.transaction('blobs').objectStore('blobs').get(id));
-      if (!rec) throw new Error('missing blob');
-      const data = new Uint8Array(await rec.blob.arrayBuffer());
+      let blob = rec && rec.blob;
+      if (!blob && meta.src) { fetching = true; blob = await download(meta, token); fetching = false; }
+      if (!blob) throw new Error('missing blob');
+      if (token !== V.token) return;
+      const data = new Uint8Array(await blob.arrayBuffer());
       if (token !== V.token) return;
       const doc = await pdfjs.getDocument({ data, isEvalSupported: false }).promise;
       if (token !== V.token) { doc.destroy(); return; }
@@ -505,7 +635,9 @@
     } catch (err) {
       if (token !== V.token) return;
       console.error(err);
-      showStatus('เปิดไฟล์นี้ไม่ได้ — ไฟล์อาจเสียหรือไม่ใช่ PDF');
+      showStatus(fetching
+        ? 'ดาวน์โหลดไฟล์ไม่ได้ — ต้องต่อเน็ตตอนเปิดไฟล์นี้ครั้งแรก'
+        : 'เปิดไฟล์นี้ไม่ได้ — ไฟล์อาจเสียหรือไม่ใช่ PDF');
     }
   }
 
@@ -666,7 +798,7 @@
     }
     if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 
-    added.forEach(({ file, ...m }) => items.push(m));
+    added.forEach(({ file, ...m }) => { items.push(m); cached.add(m.id); });
     if (activeProfile !== 1) {
       activeProfile = 1;
       lsSet(LS.profile, 1);
@@ -701,7 +833,14 @@
     t.objectStore('meta').delete(id);
     t.objectStore('blobs').delete(id);
     await done(t);
-    items.splice(items.findIndex((m) => m.id === id), 1);
+    const [gone] = items.splice(items.findIndex((m) => m.id === id), 1);
+    // A shared lecture would come back on the next visit unless we remember it was deleted.
+    if (gone && gone.src) {
+      const hidden = hiddenRemote();
+      hidden.add(gone.src);
+      lsSet(LS.hiddenRemote, JSON.stringify([...hidden]));
+    }
+    cached.delete(id);
     selected.delete(id);
     await renumber();
     if (currentId === id) {
@@ -882,6 +1021,7 @@
       li.className = 'item'
         + (m.id === currentId ? ' active' : '')
         + (m.read ? ' read' : '')
+        + (m.src && !cached.has(m.id) ? ' cloud' : '')
         + (selectMode && selected.has(m.id) ? ' selected' : '');
       li.dataset.id = m.id;
       li.draggable = !isRenaming;
@@ -1033,14 +1173,17 @@
         $('emptyTitle').textContent = 'เพิ่มไฟล์ lecture ของคุณ';
         $('emptyText').innerHTML = 'ลากไฟล์ PDF มาวางที่ไหนก็ได้ในหน้านี้ หรือกดปุ่มด้านล่าง<br>เลือกทีเดียวหลายไฟล์ได้ ไฟล์จะถูกเก็บไว้ในเบราว์เซอร์นี้';
         $('emptyAdd').hidden = false;
+        $('emptyLink').hidden = !LOCKED_LINK;
       } else if (!list.length) {
         $('emptyTitle').textContent = `${profiles[activeProfile - 1]} ยังว่างอยู่`;
         $('emptyText').textContent = 'ไปที่ profile อื่น กด "เลือก" แล้วเลือกไฟล์ที่ต้องการ จากนั้นกดย้ายมาที่นี่';
         $('emptyAdd').hidden = true;
+        $('emptyLink').hidden = true;
       } else {
         $('emptyTitle').textContent = 'เลือก lecture จากรายการด้านซ้าย';
         $('emptyText').textContent = '';
         $('emptyAdd').hidden = true;
+        $('emptyLink').hidden = true;
       }
     }
     document.title = cur ? `${cur.title} · CVS Lectures` : 'CVS Lectures';
@@ -1058,8 +1201,74 @@
   }
 
   /* =====================================================================
+     Locked Google Drive link — only ciphertext lives in this file.
+     Written by `node tools/lock-link.mjs` (PBKDF2-SHA256 → AES-GCM-256).
+     ===================================================================== */
+  const LOCKED_LINK = /*LOCKED_LINK*/{"n":600000,"s":"SpOrquCsKt7uIOc5fRtGHw==","i":"pHd0SW7AgBG2Y52x","c":"3Lk6/fwD9X4mE3gAO0MBKa9cK0i7nqjWdYmdDXZ0LGZB+Jnc3HfYK6Glp0gRntE6Ue/WGGtmaoVG7Ck205ud3Kgv2VYq6/fxjDAaOaGbfr16/rEi9tSg+MaMfbwEz65DtM0q3A=="}/*/LOCKED_LINK*/;
+  const fromB64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+
+  async function unlockLink(pass) {
+    const L = LOCKED_LINK;
+    const raw = new TextEncoder().encode(pass.normalize('NFC').trim());
+    const base = await crypto.subtle.importKey('raw', raw, 'PBKDF2', false, ['deriveKey']);
+    const key = await crypto.subtle.deriveKey(
+      { name: 'PBKDF2', salt: fromB64(L.s), iterations: L.n, hash: 'SHA-256' },
+      base, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+    const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromB64(L.i) }, key, fromB64(L.c));
+    return new TextDecoder().decode(plain);   // throws above if the password is wrong
+  }
+
+  const linkModal = $('linkModal');
+  function openLinkModal() {
+    if (!LOCKED_LINK) { toast('ยังไม่ได้ตั้งลิงก์ไฟล์'); return; }
+    if (isPhone()) setDrawer(false);
+    $('linkLocked').hidden = false;
+    $('linkOpen').hidden = true;
+    $('linkErr').hidden = true;
+    $('linkPass').value = '';
+    $('linkA').removeAttribute('href');
+    $('linkA').textContent = '';
+    linkModal.hidden = false;
+    $('linkPass').focus();
+  }
+  const closeLinkModal = () => { linkModal.hidden = true; $('linkPass').value = ''; };
+
+  $('linkForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const pass = $('linkPass').value;
+    if (!pass.trim()) return;
+    const err = $('linkErr'), go = $('linkGo');
+    if (!(window.crypto && crypto.subtle)) { err.textContent = 'เบราว์เซอร์นี้ถอดรหัสไม่ได้ — เปิดผ่าน https'; err.hidden = false; return; }
+    go.disabled = true; go.textContent = 'กำลังตรวจ…';
+    let url = null;
+    try { url = await unlockLink(pass); } catch {}
+    go.disabled = false; go.textContent = 'ปลดล็อก';
+    if (!url || !/^https:\/\//.test(url)) {
+      err.textContent = 'รหัสไม่ถูกต้อง'; err.hidden = false;
+      const sheet = $('linkForm');
+      sheet.classList.remove('shake'); void sheet.offsetWidth; sheet.classList.add('shake');
+      $('linkPass').select();
+      return;
+    }
+    $('linkPass').value = '';
+    $('linkA').href = url;
+    $('linkA').textContent = url;
+    $('linkLocked').hidden = true;
+    $('linkOpen').hidden = false;
+  });
+  $('linkCopy').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText($('linkA').href); toast('คัดลอกลิงก์แล้ว'); }
+    catch { toast('คัดลอกไม่ได้ — กดค้างที่ลิงก์แทน'); }
+  });
+  linkModal.addEventListener('click', (e) => { if (e.target === linkModal || e.target.closest('[data-close]')) closeLinkModal(); });
+  linkModal.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Escape') closeLinkModal(); });
+
+  /* =====================================================================
      Wiring
      ===================================================================== */
+  $('linkBtn').hidden = !LOCKED_LINK;
+  $('linkBtn').addEventListener('click', openLinkModal);
+  $('emptyLink').addEventListener('click', openLinkModal);
   const pick = () => $('picker').click();
   $('addBtn').addEventListener('click', pick);
   $('emptyAdd').addEventListener('click', pick);
@@ -1176,6 +1385,7 @@
     try {
       await dbReady;
       await loadMeta();
+      await syncRemote().catch((err) => console.error(err));
     } catch (err) {
       console.error(err);
       toast('เบราว์เซอร์นี้ไม่อนุญาตให้เก็บไฟล์ — ลองเปิดด้วย Chrome หรือ Edge');
