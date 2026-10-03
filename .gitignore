@@ -1,0 +1,6 @@
+# Lecture files never go to GitHub — they live only in each device's browser.
+*.pdf
+.DS_Store
+Thumbs.db
+_preview*.png
+_preview*.html

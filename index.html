@@ -1,0 +1,1194 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CVS Lectures</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="theme-color" content="#b3261e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="CVS">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<script>
+  // Set the theme before first paint so the page never flashes the wrong colours.
+  (() => {
+    let t = null;
+    try { t = localStorage.getItem('cvs.theme'); } catch {}
+    if (t !== 'light' && t !== 'dark') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    document.documentElement.dataset.theme = t;
+  })();
+</script>
+<style>
+  :root {
+    --bg: #f6f3f0;
+    --panel: #fffdfb;
+    --ink: #221c19;
+    --muted: #776d66;
+    --line: #e7e0d9;
+    --hover: #f2ece6;
+    --accent: #b3261e;
+    --accent-soft: #f7e3e0;
+    --sel: #e3ecfb;
+    --sel-line: #3b6fd8;
+    --ok: #2e7d4f;
+    --stage: #e2ddd8;
+    --shadow: 0 8px 30px rgba(40, 20, 10, .12);
+    color-scheme: light;
+  }
+  /* Dark mode: neutral charcoal, chosen with the ☀/☾ button (defaults to the system setting) */
+  :root[data-theme="dark"] {
+    --bg: #1c1c1c;
+    --panel: #212121;
+    --ink: #ececec;
+    --muted: #9a9a9a;
+    --line: #333333;
+    --hover: #2c2c2c;
+    --accent: #ff6f61;
+    --accent-soft: #3a2422;
+    --sel: #1d2a40;
+    --sel-line: #7aa2f7;
+    --ok: #72d39b;
+    --stage: #252525;
+    --shadow: 0 8px 30px rgba(0, 0, 0, .5);
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font: 14px/1.45 "Segoe UI", "Leelawadee UI", Tahoma, system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    overflow: hidden;
+  }
+  button, input { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  [hidden] { display: none !important; }
+
+  .app { display: grid; grid-template-columns: 310px 1fr; height: 100vh; }
+  .app.collapsed { grid-template-columns: 0 1fr; }
+  .app.collapsed aside { visibility: hidden; }
+
+  /* ---------- Sidebar ---------- */
+  aside {
+    display: flex; flex-direction: column; min-width: 0; overflow: hidden;
+    background: var(--panel); border-right: 1px solid var(--line);
+  }
+  .brand { padding: 18px 18px 10px; }
+  .brand h1 { margin: 0; font-size: 20px; letter-spacing: .5px; }
+  .brand h1 span { color: var(--accent); }
+  .brand p { margin: 2px 0 0; color: var(--muted); font-size: 12.5px; }
+
+  .progress { padding: 4px 18px 12px; }
+  .progress .bar { height: 6px; border-radius: 99px; background: var(--line); overflow: hidden; }
+  .progress .fill { height: 100%; width: 0; background: var(--ok); transition: width .3s; }
+  .progress .label { margin-top: 5px; font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; }
+
+  .btn {
+    border: 1px solid var(--line); background: var(--panel); border-radius: 8px;
+    padding: 6px 10px; white-space: nowrap;
+  }
+  .btn:hover { background: var(--hover); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.primary:hover { filter: brightness(1.08); }
+  .btn.on { background: var(--sel); border-color: var(--sel-line); color: var(--sel-line); }
+  .btn.sm { padding: 3px 8px; font-size: 12.5px; }
+  .btn:disabled { opacity: .4; cursor: default; }
+
+  .add-row, .tools { display: flex; gap: 6px; padding: 0 12px 10px; }
+  .add-row .primary { flex: 1; }
+  .tools input {
+    flex: 1; min-width: 0; padding: 7px 10px; border-radius: 8px;
+    border: 1px solid var(--line); background: var(--bg);
+  }
+
+  /* profile tabs */
+  .tabs { display: flex; flex-wrap: wrap; gap: 5px; padding: 0 12px 10px; }
+  .tab {
+    display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-width: 0;
+    padding: 4px 6px 4px 10px; border-radius: 99px; border: 1px solid var(--line);
+    background: var(--bg); font-size: 12.5px; cursor: pointer; user-select: none;
+  }
+  .tab:hover { background: var(--hover); }
+  .tab .tname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tab .cnt {
+    min-width: 18px; padding: 0 5px; border-radius: 99px; text-align: center;
+    background: var(--line); color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums;
+  }
+  .tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .tab.active .cnt { background: rgba(255,255,255,.25); color: #fff; }
+  .tab input { width: 110px; padding: 0 4px; border: 0; border-radius: 4px; background: var(--panel); color: var(--ink); }
+
+  ul.list { list-style: none; margin: 0; padding: 4px 8px 12px; overflow-y: auto; flex: 1; border-top: 1px solid var(--line); }
+  .item {
+    display: grid; grid-template-columns: 22px 26px 1fr 24px; align-items: center; gap: 4px;
+    padding: 7px 6px; border-radius: 8px; border-left: 3px solid transparent;
+    cursor: pointer; user-select: none;
+  }
+  .item:hover { background: var(--hover); }
+  .item.active { background: var(--accent-soft); border-left-color: var(--accent); }
+  .item.selected { background: var(--sel); border-left-color: var(--sel-line); }
+  .item.drop-before { box-shadow: inset 0 2px 0 var(--accent); }
+  .item.drop-after { box-shadow: inset 0 -2px 0 var(--accent); }
+  .item.dragging { opacity: .4; }
+  .item input[type=checkbox] { accent-color: var(--ok); width: 15px; height: 15px; margin: 0; cursor: pointer; }
+  .selecting .item input[type=checkbox] { accent-color: var(--sel-line); }
+  .item .num { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; text-align: right; padding-right: 4px; }
+  .item .title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .item.read .title { color: var(--muted); }
+  .item .title input { width: 100%; padding: 2px 4px; border: 1px solid var(--accent); border-radius: 4px; background: var(--bg); }
+  .item .del {
+    border: 0; background: none; color: var(--muted); border-radius: 6px;
+    opacity: 0; padding: 0; height: 22px; font-size: 15px;
+  }
+  .item:hover .del, .item .del.confirm { opacity: 1; }
+  .item .del:hover { background: var(--line); }
+  .item .del.confirm { color: #fff; background: var(--accent); font-size: 11px; padding: 0 5px; }
+  .item.has-confirm { grid-template-columns: 22px 26px 1fr auto; }
+  .list-empty { padding: 18px 10px; color: var(--muted); font-size: 12.5px; text-align: center; }
+
+  /* selection bar */
+  .selbar { padding: 10px 12px; border-top: 1px solid var(--line); background: var(--sel); }
+  .selrow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .selrow + .selrow { margin-top: 8px; }
+  .selrow .sp { flex: 1; }
+  .selrow .lbl { font-size: 12.5px; color: var(--muted); }
+
+  .hint { padding: 10px 18px 14px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11.5px; }
+  kbd {
+    font: 11px ui-monospace, Consolas, monospace; padding: 1px 5px; border-radius: 4px;
+    border: 1px solid var(--line); background: var(--bg);
+  }
+
+  /* ---------- Viewer ---------- */
+  main { display: flex; flex-direction: column; min-width: 0; }
+  .topbar {
+    display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+    background: var(--panel); border-bottom: 1px solid var(--line);
+  }
+  .topbar .now { flex: 1; min-width: 0; text-align: center; }
+  .topbar .now strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .topbar .now small { color: var(--muted); }
+  .btn.read-on { background: var(--ok); border-color: var(--ok); color: #fff; }
+  .stage { flex: 1; position: relative; min-height: 0; background: var(--stage); }
+
+  .pages { position: absolute; inset: 0; overflow: auto; padding: 16px 16px 80px; outline: none; }
+  .page {
+    position: relative; margin: 0 auto 14px; background: #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,.25);
+  }
+  .page canvas { display: block; }
+
+  /* PDF.js text layer (lets you select text and use Ctrl+F) */
+  .textLayer {
+    position: absolute; inset: 0; overflow: hidden; line-height: 1; z-index: 2;
+    text-size-adjust: none; -webkit-text-size-adjust: none; forced-color-adjust: none; transform-origin: 0 0;
+  }
+  .textLayer span, .textLayer br {
+    color: transparent; position: absolute; white-space: pre; cursor: text; transform-origin: 0% 0%;
+  }
+  .textLayer span.markedContent { top: 0; height: 0; }
+  .textLayer ::selection { background: rgba(40, 110, 255, .3); }
+  .textLayer .endOfContent { display: block; position: absolute; inset: 100% 0 0; z-index: -1; cursor: default; user-select: none; }
+
+  .pager {
+    position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 5;
+    display: flex; align-items: center; gap: 4px; padding: 5px 8px; border-radius: 99px;
+    background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); white-space: nowrap;
+  }
+  .pager button { border: 0; background: none; border-radius: 99px; width: 30px; height: 28px; font-size: 16px; }
+  .pager button:hover { background: var(--hover); }
+  .pager .zl { min-width: 46px; width: auto; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+  .pager .sep { width: 1px; height: 18px; background: var(--line); margin: 0 4px; }
+  .pager input {
+    width: 46px; padding: 3px 4px; text-align: center; border: 1px solid var(--line); border-radius: 6px;
+    background: var(--bg); font-variant-numeric: tabular-nums;
+  }
+  .pager .tot { color: var(--muted); font-size: 12.5px; padding-right: 6px; font-variant-numeric: tabular-nums; }
+
+  .status, .empty { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; }
+  .status { color: var(--muted); }
+  .empty .card {
+    max-width: 440px; padding: 40px 32px; border: 2px dashed var(--line); border-radius: 18px; background: var(--panel);
+  }
+  .empty .heart { font-size: 44px; line-height: 1; color: var(--accent); }
+  .empty h2 { margin: 12px 0 6px; font-size: 19px; }
+  .empty p { margin: 0 0 18px; color: var(--muted); }
+
+  .drop-overlay {
+    position: fixed; inset: 0; z-index: 50; display: grid; place-items: center;
+    background: color-mix(in srgb, var(--accent) 18%, transparent); backdrop-filter: blur(2px);
+  }
+  .drop-overlay div {
+    pointer-events: none; padding: 28px 40px; border-radius: 16px; background: var(--panel);
+    border: 2px dashed var(--accent); font-size: 18px; box-shadow: var(--shadow);
+  }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 60;
+    padding: 10px 16px; border-radius: 10px; background: var(--ink); color: var(--bg);
+    box-shadow: var(--shadow); font-size: 13px; max-width: calc(100vw - 32px);
+  }
+
+  /* ---------- Touch & phone ---------- */
+  .scrim { display: none; }
+  .item, .tab { -webkit-touch-callout: none; }
+  @media (hover: none) {
+    .item { padding-block: 10px; }
+    .item .del { opacity: .55; }
+  }
+  @media (max-width: 760px) {
+    .app, .app.collapsed { grid-template-columns: 1fr; height: 100dvh; }
+    .app.collapsed aside { visibility: visible; }
+    aside {
+      position: fixed; z-index: 40; top: 0; bottom: 0; left: 0;
+      width: min(86vw, 340px); transform: translateX(-105%); transition: transform .22s ease;
+      box-shadow: var(--shadow);
+      padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    .app.drawer-open aside { transform: none; }
+    .app.drawer-open .scrim { display: block; position: fixed; inset: 0; z-index: 35; background: rgba(0, 0, 0, .45); }
+    .hint { display: none; }
+    .topbar { gap: 6px; padding: calc(6px + env(safe-area-inset-top, 0px)) 8px 6px; }
+    .topbar .btn { padding: 6px 10px; }
+    .topbar .lbl { display: none; }
+    .topbar .now strong { font-size: 13.5px; }
+    .topbar .now small { font-size: 11.5px; }
+    .pages { padding: 8px 8px 90px; }
+    .pager { bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
+    .pager button { width: 38px; height: 34px; }
+    .tab { padding-block: 6px; }
+    .toast { bottom: calc(70px + env(safe-area-inset-bottom, 0px)); }
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <aside>
+    <div class="brand">
+      <h1><span>♥</span> CVS Lectures</h1>
+      <p>Cardiovascular System</p>
+    </div>
+    <div class="progress">
+      <div class="bar"><div class="fill" id="progFill"></div></div>
+      <div class="label"><span id="progText">ยังไม่มีไฟล์</span><span id="progPct"></span></div>
+    </div>
+    <div class="add-row">
+      <button class="btn primary" id="addBtn">＋ เพิ่ม PDF</button>
+      <button class="btn" id="sortBtn" title="เรียงทุกไฟล์ตามชื่อที่แสดง">เรียง A→Z</button>
+    </div>
+    <div class="tools">
+      <input id="search" type="search" placeholder="ค้นหา lecture…" autocomplete="off">
+      <button class="btn" id="selectBtn" title="เลือกหลายไฟล์เพื่อย้าย profile">เลือก</button>
+    </div>
+    <div class="tabs" id="tabs"></div>
+    <ul class="list" id="list"></ul>
+    <div class="selbar" id="selbar" hidden>
+      <div class="selrow">
+        <strong id="selCount"></strong><span class="sp"></span>
+        <button class="btn sm" id="selAll">เลือกทั้งหมด</button>
+        <button class="btn sm" id="selDone">ยกเลิก</button>
+      </div>
+      <div class="selrow"><span class="lbl">ย้ายไป:</span><span class="selrow" id="moveBtns"></span></div>
+    </div>
+    <div class="hint">
+      <kbd>Alt</kbd>+<kbd>←</kbd>/<kbd>→</kbd> lecture ก่อนหน้า/ถัดไป ·
+      ดับเบิลคลิกชื่อไฟล์หรือแท็บเพื่อเปลี่ยนชื่อ · <kbd>Ctrl</kbd>+คลิก หรือ <kbd>Shift</kbd>+คลิก เลือกหลายไฟล์
+    </div>
+  </aside>
+
+  <main>
+    <div class="topbar">
+      <button class="btn" id="toggleSide" title="ซ่อน/แสดงรายชื่อ">☰</button>
+      <button class="btn" id="prevBtn" title="lecture ก่อนหน้า">◀<span class="lbl"> ก่อนหน้า</span></button>
+      <div class="now">
+        <strong id="nowTitle">—</strong>
+        <small id="nowCount"></small>
+      </div>
+      <button class="btn" id="readBtn" title="อ่านจบแล้ว" disabled></button>
+      <button class="btn" id="nextBtn" title="lecture ถัดไป"><span class="lbl">ถัดไป </span>▶</button>
+      <button class="btn" id="themeBtn" title="สลับโหมดสว่าง/มืด"></button>
+    </div>
+    <div class="stage">
+      <div class="pages" id="pages" tabindex="0" hidden></div>
+      <div class="status" id="status" hidden></div>
+      <div class="empty" id="empty" hidden>
+        <div class="card">
+          <div class="heart">♥</div>
+          <h2 id="emptyTitle"></h2>
+          <p id="emptyText"></p>
+          <button class="btn primary" id="emptyAdd">＋ เลือกไฟล์ PDF</button>
+        </div>
+      </div>
+      <div class="pager" id="pager" hidden>
+        <button id="zoomOut" title="ย่อ">−</button>
+        <button class="zl" id="zoomFit" title="พอดีความกว้าง"><span id="zoomLabel">100%</span></button>
+        <button id="zoomIn" title="ขยาย">+</button>
+        <span class="sep"></span>
+        <input id="pageInput" inputmode="numeric" title="พิมพ์เลขหน้าแล้วกด Enter">
+        <span class="tot" id="pageTotal"></span>
+      </div>
+    </div>
+  </main>
+  <div class="scrim" id="scrim"></div>
+</div>
+
+<input type="file" id="picker" accept="application/pdf,.pdf" multiple hidden>
+<div class="drop-overlay" id="dropOverlay" hidden><div>วางไฟล์ PDF ตรงนี้</div></div>
+<div class="toast" id="toast" hidden></div>
+
+<script src="vendor/pdf.min.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+  const PROFILE_COUNT = 5;
+  const LS = {
+    collapsed: 'cvs.collapsed', profile: 'cvs.profile', profiles: 'cvs.profiles', zoom: 'cvs.zoom',
+    last: (p) => 'cvs.last.' + p, legacyLast: 'cvs.lastId',
+  };
+
+  const pdfjs = window.pdfjsLib || null;
+  if (pdfjs) pdfjs.GlobalWorkerOptions.workerSrc = 'vendor/pdf.worker.min.js';
+
+  /* ---------- small helpers ---------- */
+  const lsGet = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
+  const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch {} };
+  const newId = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+  const cleanTitle = (name) => name.replace(/\.pdf$/i, '').replace(/[_]+/g, ' ').trim();
+  const clampProfile = (n) => (n >= 1 && n <= PROFILE_COUNT ? n : 1);
+  const profOf = (m) => m.profile || 1;
+
+  function loadProfiles() {
+    const def = Array.from({ length: PROFILE_COUNT }, (_, i) => 'Profile ' + (i + 1));
+    let saved = null;
+    try { saved = JSON.parse(lsGet(LS.profiles)); } catch {}
+    if (!Array.isArray(saved)) return def;
+    return def.map((d, i) => (typeof saved[i] === 'string' && saved[i].trim() ? saved[i] : d));
+  }
+
+  /* ---------- state ---------- */
+  let db = null;
+  let items = [];               // metadata only, sorted by .order
+  let currentId = null;
+  let dragId = null;
+  let renaming = null;          // { id, draft, fresh } — lecture rename, survives re-renders
+  let renamingTab = null;       // { p, draft, fresh } — profile rename
+  let rendering = false;
+  let profiles = loadProfiles();
+  let activeProfile = clampProfile(+lsGet(LS.profile));
+  let selectMode = false;
+  const selected = new Set();
+  let anchorId = null;
+  let shownIds = [];
+
+  const inProfile = (p = activeProfile) => items.filter((m) => profOf(m) === p);
+
+  /* ---------- phone helpers ---------- */
+  const phoneMQ = matchMedia('(max-width: 760px)');
+  const isPhone = () => phoneMQ.matches;
+  const setDrawer = (open) => $('app').classList.toggle('drawer-open', open);
+
+  // Touch screens have no double-click: a long press does the same job (rename).
+  function onLongPress(el, fn) {
+    let timer = null, sx = 0, sy = 0;
+    const cancel = () => { clearTimeout(timer); timer = null; };
+    el.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'mouse') return;
+      sx = e.clientX; sy = e.clientY;
+      timer = setTimeout(() => { timer = null; fn(); }, 550);
+    });
+    el.addEventListener('pointermove', (e) => { if (timer && Math.hypot(e.clientX - sx, e.clientY - sy) > 10) cancel(); });
+    el.addEventListener('pointerup', cancel);
+    el.addEventListener('pointercancel', cancel);
+    el.addEventListener('contextmenu', (e) => e.preventDefault());
+  }
+
+  /* ---------- IndexedDB ---------- */
+  function openDB() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open('cvs-viewer', 1);
+      req.onupgradeneeded = () => {
+        req.result.createObjectStore('meta', { keyPath: 'id' });
+        req.result.createObjectStore('blobs', { keyPath: 'id' });
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+  const done = (t) => new Promise((res, rej) => {
+    t.oncomplete = res; t.onerror = () => rej(t.error); t.onabort = () => rej(t.error);
+  });
+  const reqP = (r) => new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+  const dbReady = openDB().then((d) => { db = d; return d; });
+
+  async function loadMeta() {
+    const all = await reqP(db.transaction('meta').objectStore('meta').getAll());
+    items = all.sort((a, b) => a.order - b.order);
+  }
+  async function saveMeta(list) {
+    const t = db.transaction('meta', 'readwrite');
+    list.forEach((m) => t.objectStore('meta').put(m));
+    await done(t);
+  }
+  const renumber = () => { items.forEach((m, i) => { m.order = i; }); return saveMeta(items); };
+
+  /* =====================================================================
+     PDF viewer (PDF.js) — renders only pages near the viewport and
+     remembers where you stopped in every file.
+     ===================================================================== */
+  const pagesEl = $('pages');
+  const V = {
+    doc: null, token: 0, pages: [], baseW: 612, scale: 1, raf: 0, saveTimer: null,
+    zoom: Math.min(4, Math.max(0.4, parseFloat(lsGet(LS.zoom)) || 1)),
+  };
+
+  function showStatus(msg) {
+    $('status').hidden = !msg;
+    $('status').textContent = msg || '';
+  }
+
+  function closeDoc() {
+    V.token++;
+    V.pages.forEach((p) => { if (p.task) p.task.cancel(); });
+    V.pages = [];
+    if (V.doc) { V.doc.destroy(); V.doc = null; }
+    pagesEl.replaceChildren();
+    pagesEl.hidden = true;
+    showStatus(null);
+  }
+
+  async function openItem(id) {
+    const meta = items.find((m) => m.id === id);
+    if (!meta || id === currentId) return;
+    saveNow();
+    closeDoc();
+    const token = ++V.token;
+    currentId = id;
+    lsSet(LS.last(profOf(meta)), id);
+    render();
+    const li = document.querySelector(`.item[data-id="${id}"]`);
+    if (li) li.scrollIntoView({ block: 'nearest' });
+
+    if (!pdfjs) { showStatus('โหลดตัวอ่าน PDF ไม่ได้ — ต้องมีโฟลเดอร์ vendor อยู่ข้างไฟล์ index.html'); return; }
+    showStatus('กำลังโหลด…');
+    try {
+      const rec = await reqP(db.transaction('blobs').objectStore('blobs').get(id));
+      if (!rec) throw new Error('missing blob');
+      const data = new Uint8Array(await rec.blob.arrayBuffer());
+      if (token !== V.token) return;
+      const doc = await pdfjs.getDocument({ data, isEvalSupported: false }).promise;
+      if (token !== V.token) { doc.destroy(); return; }
+      V.doc = doc;
+      const first = (await doc.getPage(1)).getViewport({ scale: 1 });
+      if (token !== V.token) return;
+      V.baseW = first.width;
+
+      // Placeholders sized like page 1; a page that differs is corrected when it renders.
+      const frag = document.createDocumentFragment();
+      V.pages = [];
+      for (let n = 1; n <= doc.numPages; n++) {
+        const el = document.createElement('div');
+        el.className = 'page';
+        frag.append(el);
+        V.pages.push({ n, el, w: first.width, h: first.height, state: 'empty', gen: 0, task: null });
+      }
+      pagesEl.replaceChildren(frag);
+      pagesEl.hidden = false;
+      showStatus(null);
+      applyScale();
+      scrollToPos(meta.pos);
+      updateView();
+      renderBar();
+    } catch (err) {
+      if (token !== V.token) return;
+      console.error(err);
+      showStatus('เปิดไฟล์นี้ไม่ได้ — ไฟล์อาจเสียหรือไม่ใช่ PDF');
+    }
+  }
+
+  function sizePage(p) {
+    p.el.style.width = Math.floor(p.w * V.scale) + 'px';
+    p.el.style.height = Math.floor(p.h * V.scale) + 'px';
+  }
+
+  function applyScale() {
+    const avail = Math.max(200, pagesEl.clientWidth - (isPhone() ? 16 : 32));
+    V.scale = Math.max(0.1, (avail / V.baseW) * V.zoom);
+    pagesEl.style.setProperty('--scale-factor', V.scale);
+    V.pages.forEach((p) => { release(p); sizePage(p); });
+    $('zoomLabel').textContent = Math.round(V.zoom * 100) + '%';
+  }
+
+  function release(p) {
+    if (p.task) { p.task.cancel(); p.task = null; }
+    p.gen++;
+    p.state = 'empty';
+    p.el.replaceChildren();
+  }
+
+  async function renderPage(p) {
+    if (p.state !== 'empty' || !V.doc) return;
+    p.state = 'rendering';
+    const gen = ++p.gen, token = V.token, scale = V.scale;
+    const alive = () => token === V.token && gen === p.gen;
+    try {
+      const page = await V.doc.getPage(p.n);
+      if (!alive()) return;
+      const raw = page.getViewport({ scale: 1 });
+      if (Math.abs(raw.width - p.w) > 0.5 || Math.abs(raw.height - p.h) > 0.5) {
+        p.w = raw.width; p.h = raw.height; sizePage(p);
+      }
+      const vp = page.getViewport({ scale });
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.floor(vp.width * dpr);
+      canvas.height = Math.floor(vp.height * dpr);
+      canvas.style.width = Math.floor(vp.width) + 'px';
+      canvas.style.height = Math.floor(vp.height) + 'px';
+      p.task = page.render({
+        canvasContext: canvas.getContext('2d'),
+        viewport: vp,
+        transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : null,
+      });
+      await p.task.promise;
+      p.task = null;
+      if (!alive()) return;
+      const text = document.createElement('div');
+      text.className = 'textLayer';
+      p.el.replaceChildren(canvas, text);
+      p.state = 'done';
+      pdfjs.renderTextLayer({ textContentSource: page.streamTextContent(), container: text, viewport: vp, textDivs: [] })
+        .promise.catch(() => {});
+    } catch (err) {
+      if (err && err.name === 'RenderingCancelledException') return;
+      if (alive()) { p.state = 'empty'; p.task = null; }
+      console.error(err);
+    }
+  }
+
+  function updateView() {
+    V.raf = 0;
+    if (!V.pages.length) return;
+    const top = pagesEl.scrollTop, height = pagesEl.clientHeight, bottom = top + height;
+    let first = -1, last = -1;
+    for (let i = 0; i < V.pages.length; i++) {
+      const el = V.pages[i].el, t = el.offsetTop, b = t + el.offsetHeight;
+      if (b >= top && t <= bottom) { if (first < 0) first = i; last = i; }
+      else if (t > bottom) break;
+    }
+    if (first < 0) first = last = 0;
+    V.pages.forEach((p, i) => {
+      if (i >= first - 1 && i <= last + 1) renderPage(p);
+      else if (i < first - 4 || i > last + 4) { if (p.state !== 'empty') release(p); }
+    });
+    const probe = top + height * 0.3;
+    let cur = V.pages[first];
+    for (let i = first; i <= last; i++) if (V.pages[i].el.offsetTop <= probe) cur = V.pages[i];
+    const inp = $('pageInput');
+    if (document.activeElement !== inp) inp.value = cur.n;
+    $('pageTotal').textContent = '/ ' + V.pages.length;
+  }
+
+  function currentPos() {
+    if (!V.pages.length || pagesEl.hidden) return null;
+    const top = pagesEl.scrollTop;
+    let p = V.pages[0];
+    for (const q of V.pages) { if (q.el.offsetTop <= top + 1) p = q; else break; }
+    const h = p.el.offsetHeight || 1;
+    const frac = Math.max(0, Math.min(1, (top - p.el.offsetTop) / h));
+    return { page: p.n, frac: Math.round(frac * 1000) / 1000 };
+  }
+
+  function scrollToPos(pos) {
+    const p = pos && V.pages[pos.page - 1];
+    pagesEl.scrollTop = p ? p.el.offsetTop + (pos.frac || 0) * p.el.offsetHeight : 0;
+  }
+
+  function relayout() {
+    if (!V.pages.length) return;
+    const pos = currentPos();
+    applyScale();
+    scrollToPos(pos);
+    updateView();
+  }
+
+  function scheduleSave() { clearTimeout(V.saveTimer); V.saveTimer = setTimeout(saveNow, 400); }
+  function saveNow() {
+    clearTimeout(V.saveTimer); V.saveTimer = null;
+    const m = items.find((x) => x.id === currentId);
+    const pos = currentPos();
+    if (!db || !m || !pos) return;
+    if (m.pos && m.pos.page === pos.page && m.pos.frac === pos.frac) return;
+    m.pos = pos;
+    saveMeta([m]).catch(() => {});
+  }
+
+  function setZoom(z) {
+    V.zoom = Math.min(4, Math.max(0.4, Math.round(z * 100) / 100));
+    lsSet(LS.zoom, V.zoom);
+    relayout();
+  }
+
+  /* =====================================================================
+     Library actions
+     ===================================================================== */
+  async function addFiles(fileList) {
+    const files = [...fileList];   // copy now: the input / drop FileList is emptied once the event ends
+    try { await dbReady; } catch { return; }
+    const pdfs = files.filter((f) => f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
+    if (!pdfs.length) { toast('รองรับเฉพาะไฟล์ PDF'); return; }
+    const seen = new Set(items.map((m) => m.name + '|' + m.size));
+    const fresh = pdfs.filter((f) => !seen.has(f.name + '|' + f.size))
+                      .sort((a, b) => collator.compare(a.name, b.name));
+    const skipped = pdfs.length - fresh.length;
+    if (!fresh.length) { toast('ไฟล์เหล่านี้มีอยู่แล้ว'); return; }
+
+    let order = items.length;
+    // New uploads always land in Profile 1.
+    const added = fresh.map((f) => ({
+      id: newId(), name: f.name, title: cleanTitle(f.name), size: f.size,
+      order: order++, read: false, profile: 1, file: f,
+    }));
+    try {
+      const t = db.transaction(['meta', 'blobs'], 'readwrite');
+      added.forEach(({ file, ...m }) => {
+        t.objectStore('meta').put(m);
+        t.objectStore('blobs').put({ id: m.id, blob: file });
+      });
+      await done(t);
+    } catch (err) {
+      console.error(err);
+      toast('บันทึกไฟล์ไม่สำเร็จ — พื้นที่เบราว์เซอร์อาจเต็ม');
+      return;
+    }
+    if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+
+    added.forEach(({ file, ...m }) => items.push(m));
+    if (activeProfile !== 1) {
+      activeProfile = 1;
+      lsSet(LS.profile, 1);
+      exitSelect(false);
+    }
+    toast(`เพิ่ม ${added.length} ไฟล์เข้า ${profiles[0]} แล้ว` + (skipped ? ` (ข้าม ${skipped} ไฟล์ที่ซ้ำ)` : ''));
+    const cur = items.find((m) => m.id === currentId);
+    render();
+    if (!cur || profOf(cur) !== 1) openItem(added[0].id);
+  }
+
+  function step(dir) {
+    const list = inProfile();
+    if (!list.length) return;
+    const i = list.findIndex((m) => m.id === currentId);
+    const next = i === -1 ? 0 : i + dir;
+    if (next < 0 || next >= list.length) return;
+    openItem(list[next].id);
+  }
+
+  async function toggleRead(id, value) {
+    const m = items.find((x) => x.id === id);
+    if (!m) return;
+    m.read = value ?? !m.read;
+    await saveMeta([m]);
+    render();
+  }
+
+  async function removeItem(id) {
+    const before = inProfile().findIndex((m) => m.id === id);
+    const t = db.transaction(['meta', 'blobs'], 'readwrite');
+    t.objectStore('meta').delete(id);
+    t.objectStore('blobs').delete(id);
+    await done(t);
+    items.splice(items.findIndex((m) => m.id === id), 1);
+    selected.delete(id);
+    await renumber();
+    if (currentId === id) {
+      clearTimeout(V.saveTimer);
+      closeDoc();
+      currentId = null;
+      const list = inProfile();
+      const fallback = list[Math.min(Math.max(before, 0), list.length - 1)];
+      if (fallback) { openItem(fallback.id); return; }
+    }
+    render();
+  }
+
+  async function sortByName() {
+    // Sort by the title you see (after renaming), not the original file name.
+    items.sort((a, b) => collator.compare(a.title, b.title) || collator.compare(a.name, b.name));
+    await renumber();
+    render();
+    toast('เรียงตามชื่อที่แสดงแล้ว');
+  }
+
+  async function move(id, targetId, after) {
+    if (id === targetId) return;
+    const from = items.findIndex((m) => m.id === id);
+    const [m] = items.splice(from, 1);
+    let to = items.findIndex((x) => x.id === targetId);
+    if (after) to += 1;
+    items.splice(to, 0, m);
+    await renumber();
+    render();
+  }
+
+  /* ---------- profiles & selection ---------- */
+  function switchProfile(p) {
+    if (p === activeProfile) return;
+    activeProfile = p;
+    lsSet(LS.profile, p);
+    exitSelect(false);
+    const list = inProfile();
+    const last = lsGet(LS.last(p));
+    const target = list.find((m) => m.id === last) || list[0];
+    if (target) { openItem(target.id); render(); return; }
+    saveNow();
+    closeDoc();
+    currentId = null;
+    render();
+  }
+
+  function exitSelect(doRender = true) {
+    selectMode = false;
+    selected.clear();
+    anchorId = null;
+    if (doRender) render();
+  }
+
+  function selectRange(fromId, toId) {
+    const a = shownIds.indexOf(fromId), b = shownIds.indexOf(toId);
+    if (a < 0 || b < 0) { selected.add(toId); return; }
+    const [lo, hi] = a < b ? [a, b] : [b, a];
+    for (let i = lo; i <= hi; i++) selected.add(shownIds[i]);
+  }
+
+  function toggleSel(id) { if (selected.has(id)) selected.delete(id); else selected.add(id); }
+
+  async function moveSelected(p) {
+    const moved = items.filter((m) => selected.has(m.id));
+    if (!moved.length) return;
+    moved.forEach((m) => { m.profile = p; });
+    await saveMeta(moved);
+    exitSelect(false);
+    if (moved.some((m) => m.id === currentId)) {
+      saveNow();
+      closeDoc();
+      currentId = null;
+      const first = inProfile()[0];
+      if (first) openItem(first.id);
+    }
+    render();
+    toast(`ย้าย ${moved.length} ไฟล์ไป ${profiles[p - 1]} แล้ว`);
+  }
+
+  /* ---------- renaming (lecture titles and profile tabs) ---------- */
+  function makeRenameInput(state, finish) {
+    const input = document.createElement('input');
+    input.value = state.draft;
+    input.addEventListener('input', () => { state.draft = input.value; });
+    input.addEventListener('keydown', (e) => {
+      e.stopPropagation();
+      if (e.key === 'Enter') finish(true);
+      if (e.key === 'Escape') finish(false);
+    });
+    // a re-render removes the input and may fire blur — that is not the user leaving the field
+    input.addEventListener('blur', () => { if (!rendering) finish(true); });
+    ['click', 'dblclick', 'mousedown'].forEach((t) => input.addEventListener(t, (e) => e.stopPropagation()));
+    return input;
+  }
+
+  async function finishRename(save) {
+    if (!renaming) return;
+    const { id, draft } = renaming;
+    renaming = null;
+    const m = items.find((x) => x.id === id);
+    const v = draft.trim();
+    if (save && m && v && v !== m.title) { m.title = v; await saveMeta([m]); }
+    render();
+  }
+
+  function finishTabRename(save) {
+    if (!renamingTab) return;
+    const { p, draft } = renamingTab;
+    renamingTab = null;
+    const v = draft.trim();
+    if (save && v) { profiles[p - 1] = v; lsSet(LS.profiles, JSON.stringify(profiles)); }
+    render();
+  }
+
+  /* =====================================================================
+     Rendering
+     ===================================================================== */
+  function render() {
+    rendering = true;
+    const focusTab = renderTabs();
+    const focusItem = renderList();
+    renderSelBar();
+    renderBar();
+    rendering = false;
+    const input = focusTab || focusItem;
+    if (input) {
+      const state = focusTab ? renamingTab : renaming;
+      input.focus();
+      if (state.fresh) { input.select(); state.fresh = false; }
+      else input.setSelectionRange(input.value.length, input.value.length);
+    }
+  }
+
+  function renderTabs() {
+    const tabs = $('tabs');
+    let focus = null;
+    tabs.replaceChildren();
+    profiles.forEach((name, i) => {
+      const p = i + 1;
+      const tab = document.createElement('div');
+      tab.className = 'tab' + (p === activeProfile ? ' active' : '');
+      tab.title = 'ดับเบิลคลิกเพื่อเปลี่ยนชื่อ';
+      if (renamingTab && renamingTab.p === p) {
+        focus = makeRenameInput(renamingTab, finishTabRename);
+        tab.append(focus);
+      } else {
+        const n = document.createElement('span');
+        n.className = 'tname'; n.textContent = name;
+        const c = document.createElement('span');
+        c.className = 'cnt'; c.textContent = inProfile(p).length;
+        tab.append(n, c);
+      }
+      tab.addEventListener('click', () => switchProfile(p));
+      const startTabRename = () => { renamingTab = { p, draft: name, fresh: true }; render(); };
+      tab.addEventListener('dblclick', (e) => { e.preventDefault(); startTabRename(); });
+      onLongPress(tab, startTabRename);
+      tabs.append(tab);
+    });
+    return focus;
+  }
+
+  function renderList() {
+    const q = $('search').value.trim().toLowerCase();
+    const list = $('list');
+    const profileItems = inProfile();
+    let focus = null;
+    list.replaceChildren();
+    list.classList.toggle('selecting', selectMode);
+    shownIds = [];
+
+    profileItems.forEach((m, i) => {
+      if (q && !m.title.toLowerCase().includes(q) && !m.name.toLowerCase().includes(q)) return;
+      shownIds.push(m.id);
+      const isRenaming = renaming && renaming.id === m.id;
+      const li = document.createElement('li');
+      li.className = 'item'
+        + (m.id === currentId ? ' active' : '')
+        + (m.read ? ' read' : '')
+        + (selectMode && selected.has(m.id) ? ' selected' : '');
+      li.dataset.id = m.id;
+      li.draggable = !isRenaming;
+      li.title = m.name;
+
+      // Left checkbox: "read" normally, "selected" while selecting.
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = selectMode ? selected.has(m.id) : m.read;
+      cb.title = selectMode ? 'เลือก' : 'อ่านจบแล้ว';
+      cb.addEventListener('click', (e) => e.stopPropagation());
+      cb.addEventListener('change', () => {
+        if (selectMode) { toggleSel(m.id); anchorId = m.id; render(); }
+        else toggleRead(m.id, cb.checked);
+      });
+
+      const num = document.createElement('span');
+      num.className = 'num'; num.textContent = i + 1;
+
+      const title = document.createElement('span');
+      title.className = 'title';
+      if (isRenaming) { focus = makeRenameInput(renaming, finishRename); title.append(focus); }
+      else title.textContent = m.title;
+
+      const del = document.createElement('button');
+      del.className = 'del'; del.textContent = '×'; del.title = 'ลบออกจากรายการ';
+      let armed = null;
+      del.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (armed) { clearTimeout(armed); removeItem(m.id); return; }
+        del.classList.add('confirm'); li.classList.add('has-confirm'); del.textContent = 'ลบ?';
+        armed = setTimeout(() => {
+          armed = null; del.classList.remove('confirm'); li.classList.remove('has-confirm'); del.textContent = '×';
+        }, 3000);
+      });
+
+      li.append(cb, num, title, del);
+      li.addEventListener('click', (e) => {
+        if (e.ctrlKey || e.metaKey || (e.shiftKey && !selectMode)) {
+          if (!selectMode) {
+            selectMode = true;
+            // Shift-click with nothing selected starts the range at the open lecture.
+            if (e.shiftKey && currentId && shownIds.includes(currentId)) anchorId = currentId;
+          }
+          if (e.shiftKey && anchorId) selectRange(anchorId, m.id);
+          else { toggleSel(m.id); anchorId = m.id; }
+          render();
+          return;
+        }
+        if (selectMode) {
+          if (e.shiftKey && anchorId) selectRange(anchorId, m.id);
+          else { toggleSel(m.id); anchorId = m.id; }
+          render();
+          return;
+        }
+        openItem(m.id);
+        if (isPhone()) setDrawer(false);
+      });
+      const startItemRename = () => {
+        if (selectMode) return;
+        renaming = { id: m.id, draft: m.title, fresh: true };
+        render();
+      };
+      li.addEventListener('dblclick', (e) => {
+        if (e.ctrlKey || e.shiftKey || e.metaKey) return;
+        e.preventDefault();
+        startItemRename();
+      });
+      onLongPress(li, startItemRename);
+
+      li.addEventListener('dragstart', (e) => {
+        dragId = m.id; li.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', m.id);
+      });
+      li.addEventListener('dragend', () => { dragId = null; li.classList.remove('dragging'); clearDropMarks(); });
+      li.addEventListener('dragover', (e) => {
+        if (!dragId) return;
+        e.preventDefault();
+        const after = e.offsetY > li.offsetHeight / 2;
+        clearDropMarks();
+        li.classList.add(after ? 'drop-after' : 'drop-before');
+      });
+      li.addEventListener('drop', (e) => {
+        if (!dragId) return;
+        e.preventDefault(); e.stopPropagation();
+        const after = li.classList.contains('drop-after');
+        clearDropMarks();
+        move(dragId, m.id, after);
+      });
+      list.append(li);
+    });
+
+    if (!shownIds.length && items.length) {
+      const li = document.createElement('li');
+      li.className = 'list-empty';
+      li.textContent = profileItems.length ? 'ไม่พบ lecture ที่ค้นหา' : `${profiles[activeProfile - 1]} ยังว่างอยู่`;
+      list.append(li);
+    }
+
+    // progress (per profile)
+    const total = profileItems.length, read = profileItems.filter((m) => m.read).length;
+    $('progFill').style.width = total ? (read / total * 100) + '%' : '0';
+    $('progText').textContent = total ? `อ่านแล้ว ${read} / ${total}` : 'ยังไม่มีไฟล์';
+    $('progPct').textContent = total ? Math.round(read / total * 100) + '%' : '';
+    return focus;
+  }
+
+  function renderSelBar() {
+    $('selbar').hidden = !selectMode;
+    $('selectBtn').classList.toggle('on', selectMode);
+    if (!selectMode) return;
+    $('selCount').textContent = `เลือก ${selected.size} ไฟล์`;
+    const allShown = shownIds.length > 0 && shownIds.every((id) => selected.has(id));
+    $('selAll').textContent = allShown ? 'ไม่เลือกเลย' : 'เลือกทั้งหมด';
+    const box = $('moveBtns');
+    box.replaceChildren();
+    profiles.forEach((name, i) => {
+      const p = i + 1;
+      if (p === activeProfile) return;
+      const b = document.createElement('button');
+      b.className = 'btn sm';
+      b.textContent = name;
+      b.disabled = selected.size === 0;
+      b.addEventListener('click', () => moveSelected(p));
+      box.append(b);
+    });
+  }
+
+  function renderBar() {
+    const list = inProfile();
+    const idx = list.findIndex((m) => m.id === currentId);
+    const cur = items.find((m) => m.id === currentId);
+    $('nowTitle').textContent = cur ? cur.title : '—';
+    $('nowCount').textContent = cur
+      ? (idx >= 0 ? `${profiles[activeProfile - 1]} · ${idx + 1} จาก ${list.length}` : `อยู่ใน ${profiles[profOf(cur) - 1]}`)
+      : '';
+    $('prevBtn').disabled = idx <= 0;
+    $('nextBtn').disabled = idx < 0 ? !list.length : idx === list.length - 1;
+    $('readBtn').disabled = !cur;
+    $('readBtn').classList.toggle('read-on', !!(cur && cur.read));
+    $('readBtn').innerHTML = (cur && cur.read ? '✓' : '☐') + '<span class="lbl"> อ่านจบแล้ว</span>';
+    $('pager').hidden = !cur || !V.pages.length;
+
+    const empty = $('empty');
+    empty.hidden = !!cur;
+    if (!cur) {
+      if (!items.length) {
+        $('emptyTitle').textContent = 'เพิ่มไฟล์ lecture ของคุณ';
+        $('emptyText').innerHTML = 'ลากไฟล์ PDF มาวางที่ไหนก็ได้ในหน้านี้ หรือกดปุ่มด้านล่าง<br>เลือกทีเดียวหลายไฟล์ได้ ไฟล์จะถูกเก็บไว้ในเบราว์เซอร์นี้';
+        $('emptyAdd').hidden = false;
+      } else if (!list.length) {
+        $('emptyTitle').textContent = `${profiles[activeProfile - 1]} ยังว่างอยู่`;
+        $('emptyText').textContent = 'ไปที่ profile อื่น กด "เลือก" แล้วเลือกไฟล์ที่ต้องการ จากนั้นกดย้ายมาที่นี่';
+        $('emptyAdd').hidden = true;
+      } else {
+        $('emptyTitle').textContent = 'เลือก lecture จากรายการด้านซ้าย';
+        $('emptyText').textContent = '';
+        $('emptyAdd').hidden = true;
+      }
+    }
+    document.title = cur ? `${cur.title} · CVS Lectures` : 'CVS Lectures';
+  }
+
+  const clearDropMarks = () => document.querySelectorAll('.drop-before, .drop-after')
+    .forEach((el) => el.classList.remove('drop-before', 'drop-after'));
+
+  let toastTimer = null;
+  function toast(msg) {
+    const t = $('toast');
+    t.textContent = msg; t.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { t.hidden = true; }, 2600);
+  }
+
+  /* =====================================================================
+     Wiring
+     ===================================================================== */
+  const pick = () => $('picker').click();
+  $('addBtn').addEventListener('click', pick);
+  $('emptyAdd').addEventListener('click', pick);
+  $('picker').addEventListener('change', (e) => { addFiles(e.target.files); e.target.value = ''; });
+  $('sortBtn').addEventListener('click', sortByName);
+  $('search').addEventListener('input', render);
+  $('selectBtn').addEventListener('click', () => {
+    if (selectMode) exitSelect();
+    else { selectMode = true; render(); }
+  });
+  $('selDone').addEventListener('click', () => exitSelect());
+  $('selAll').addEventListener('click', () => {
+    const allShown = shownIds.length > 0 && shownIds.every((id) => selected.has(id));
+    if (allShown) shownIds.forEach((id) => selected.delete(id));
+    else shownIds.forEach((id) => selected.add(id));
+    render();
+  });
+  $('prevBtn').addEventListener('click', () => step(-1));
+  $('nextBtn').addEventListener('click', () => step(1));
+  $('readBtn').addEventListener('click', () => currentId && toggleRead(currentId));
+  $('toggleSide').addEventListener('click', () => {
+    if (isPhone()) { setDrawer(!$('app').classList.contains('drawer-open')); return; }
+    const c = $('app').classList.toggle('collapsed');
+    lsSet(LS.collapsed, c ? '1' : '0');
+    relayout();
+  });
+  $('scrim').addEventListener('click', () => setDrawer(false));
+
+  // light / dark
+  const themeBtn = $('themeBtn');
+  const paintThemeBtn = () => {
+    const dark = document.documentElement.dataset.theme === 'dark';
+    themeBtn.innerHTML = dark ? '☀<span class="lbl"> สว่าง</span>' : '☾<span class="lbl"> มืด</span>';
+  };
+  themeBtn.addEventListener('click', () => {
+    const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = next;
+    lsSet('cvs.theme', next);
+    paintThemeBtn();
+  });
+  paintThemeBtn();
+
+  // viewer controls
+  pagesEl.addEventListener('scroll', () => {
+    if (!V.raf) V.raf = requestAnimationFrame(updateView);
+    scheduleSave();
+  });
+  pagesEl.addEventListener('wheel', (e) => {
+    if (!e.ctrlKey) return;
+    e.preventDefault();
+    setZoom(V.zoom * (e.deltaY < 0 ? 1.1 : 1 / 1.1));
+  }, { passive: false });
+  $('zoomIn').addEventListener('click', () => setZoom(V.zoom * 1.2));
+  $('zoomOut').addEventListener('click', () => setZoom(V.zoom / 1.2));
+  $('zoomFit').addEventListener('click', () => setZoom(1));
+  const pageInput = $('pageInput');
+  pageInput.addEventListener('keydown', (e) => {
+    e.stopPropagation();
+    if (e.key !== 'Enter') return;
+    const n = Math.min(V.pages.length, Math.max(1, parseInt(pageInput.value, 10) || 1));
+    scrollToPos({ page: n, frac: 0 });
+    pageInput.blur();
+    pagesEl.focus({ preventScroll: true });
+  });
+  pageInput.addEventListener('focus', () => pageInput.select());
+  pageInput.addEventListener('blur', () => updateView());
+
+  let resizeTimer = null;
+  window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(relayout, 150); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) saveNow(); });
+  window.addEventListener('pagehide', saveNow);
+
+  document.addEventListener('keydown', (e) => {
+    const t = e.target;
+    const typing = t && ((t.tagName === 'INPUT' && t.type !== 'checkbox') || t.tagName === 'TEXTAREA' || t.isContentEditable);
+    if (e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+      if (typing) return;
+      e.preventDefault();
+      step(e.key === 'ArrowLeft' ? -1 : 1);
+      return;
+    }
+    if (typing) return;
+    if (e.key === 'Escape' && selectMode) { exitSelect(); return; }
+    // Scroll the PDF with the keyboard even when focus is in the sidebar.
+    if (!V.pages.length || t === pagesEl || (t && t.type === 'checkbox')) return;
+    const h = pagesEl.clientHeight;
+    const by = { ArrowDown: 60, ArrowUp: -60, PageDown: h * 0.9, PageUp: -h * 0.9, ' ': e.shiftKey ? -h * 0.9 : h * 0.9 }[e.key];
+    if (by !== undefined) { e.preventDefault(); pagesEl.scrollBy(0, by); }
+    else if (e.key === 'Home' && !e.altKey) { e.preventDefault(); pagesEl.scrollTop = 0; }
+    else if (e.key === 'End' && !e.altKey) { e.preventDefault(); pagesEl.scrollTop = pagesEl.scrollHeight; }
+  });
+
+  // File drop anywhere
+  const overlay = $('dropOverlay');
+  const isFileDrag = (e) => e.dataTransfer && [...e.dataTransfer.types].includes('Files');
+  window.addEventListener('dragenter', (e) => { if (isFileDrag(e)) overlay.hidden = false; });
+  window.addEventListener('dragover', (e) => { if (isFileDrag(e)) e.preventDefault(); });
+  window.addEventListener('drop', (e) => { if (isFileDrag(e)) e.preventDefault(); });
+  overlay.addEventListener('dragleave', (e) => { if (e.target === overlay) overlay.hidden = true; });
+  overlay.addEventListener('drop', (e) => {
+    e.preventDefault();
+    overlay.hidden = true;
+    addFiles(e.dataTransfer.files);
+  });
+
+  // Offline support + "Add to Home Screen" (only when served over http/https, not file://)
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+
+  /* ---------- boot ---------- */
+  (async () => {
+    if (lsGet(LS.collapsed) === '1') $('app').classList.add('collapsed');
+    try {
+      await dbReady;
+      await loadMeta();
+    } catch (err) {
+      console.error(err);
+      toast('เบราว์เซอร์นี้ไม่อนุญาตให้เก็บไฟล์ — ลองเปิดด้วย Chrome หรือ Edge');
+      render();
+      return;
+    }
+    render();
+    const list = inProfile();
+    const last = lsGet(LS.last(activeProfile)) || lsGet(LS.legacyLast);
+    const start = list.find((m) => m.id === last) || list[0];
+    if (start) openItem(start.id);
+  })();
+})();
+</script>
+</body>
+</html>

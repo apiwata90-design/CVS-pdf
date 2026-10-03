@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CVS Lectures</title>
+<style>
+  :root {
+    --bg: #f6f3f0;
+    --panel: #fffdfb;
+    --ink: #221c19;
+    --muted: #776d66;
+    --line: #e7e0d9;
+    --hover: #f2ece6;
+    --accent: #b3261e;
+    --accent-soft: #f7e3e0;
+    --ok: #2e7d4f;
+    --shadow: 0 8px 30px rgba(40, 20, 10, .12);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161312;
+      --panel: #1f1b19;
+      --ink: #efe8e3;
+      --muted: #a2968e;
+      --line: #342d29;
+      --hover: #2a2420;
+      --accent: #ff6f61;
+      --accent-soft: #3b2320;
+      --ok: #72d39b;
+      --shadow: 0 8px 30px rgba(0, 0, 0, .5);
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font: 14px/1.45 "Segoe UI", "Leelawadee UI", Tahoma, system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    overflow: hidden;
+  }
+  button, input { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  [hidden] { display: none !important; }
+
+  .app { display: grid; grid-template-columns: 310px 1fr; height: 100vh; }
+  .app.collapsed { grid-template-columns: 0 1fr; }
+  .app.collapsed aside { visibility: hidden; }
+
+  /* ---------- Sidebar ---------- */
+  aside {
+    display: flex; flex-direction: column; min-width: 0; overflow: hidden;
+    background: var(--panel); border-right: 1px solid var(--line);
+  }
+  .brand { padding: 18px 18px 10px; }
+  .brand h1 { margin: 0; font-size: 20px; letter-spacing: .5px; }
+  .brand h1 span { color: var(--accent); }
+  .brand p { margin: 2px 0 0; color: var(--muted); font-size: 12.5px; }
+
+  .progress { padding: 4px 18px 12px; }
+  .progress .bar { height: 6px; border-radius: 99px; background: var(--line); overflow: hidden; }
+  .progress .fill { height: 100%; width: 0; background: var(--ok); transition: width .3s; }
+  .progress .label { margin-top: 5px; font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; }
+
+  .tools { display: flex; gap: 6px; padding: 0 12px 10px; }
+  .tools input {
+    flex: 1; min-width: 0; padding: 7px 10px; border-radius: 8px;
+    border: 1px solid var(--line); background: var(--bg);
+  }
+  .btn {
+    border: 1px solid var(--line); background: var(--panel); border-radius: 8px;
+    padding: 6px 10px; white-space: nowrap;
+  }
+  .btn:hover { background: var(--hover); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.primary:hover { filter: brightness(1.08); }
+  .btn:disabled { opacity: .4; cursor: default; }
+
+  .add-row { display: flex; gap: 6px; padding: 0 12px 10px; }
+  .add-row .primary { flex: 1; }
+
+  ul.list { list-style: none; margin: 0; padding: 4px 8px 12px; overflow-y: auto; flex: 1; }
+  .item {
+    display: grid; grid-template-columns: 22px 26px 1fr 24px; align-items: center; gap: 4px;
+    padding: 7px 6px; border-radius: 8px; border-left: 3px solid transparent;
+    cursor: pointer; user-select: none;
+  }
+  .item:hover { background: var(--hover); }
+  .item.active { background: var(--accent-soft); border-left-color: var(--accent); }
+  .item.drop-before { box-shadow: inset 0 2px 0 var(--accent); }
+  .item.drop-after { box-shadow: inset 0 -2px 0 var(--accent); }
+  .item.dragging { opacity: .4; }
+  .item input[type=checkbox] { accent-color: var(--ok); width: 15px; height: 15px; margin: 0; cursor: pointer; }
+  .item .num { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; text-align: right; padding-right: 4px; }
+  .item .title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .item.read .title { color: var(--muted); }
+  .item .title input { width: 100%; padding: 2px 4px; border: 1px solid var(--accent); border-radius: 4px; background: var(--bg); }
+  .item .del {
+    border: 0; background: none; color: var(--muted); border-radius: 6px;
+    opacity: 0; padding: 0; height: 22px; font-size: 15px;
+  }
+  .item:hover .del, .item .del.confirm { opacity: 1; }
+  .item .del:hover { background: var(--line); }
+  .item .del.confirm { width: auto; color: #fff; background: var(--accent); font-size: 11px; padding: 0 5px; }
+  .item.has-confirm { grid-template-columns: 22px 26px 1fr auto; }
+
+  .hint { padding: 10px 18px 14px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11.5px; }
+  kbd {
+    font: 11px ui-monospace, Consolas, monospace; padding: 1px 5px; border-radius: 4px;
+    border: 1px solid var(--line); background: var(--bg);
+  }
+
+  /* ---------- Viewer ---------- */
+  main { display: flex; flex-direction: column; min-width: 0; }
+  .bar {
+    display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+    background: var(--panel); border-bottom: 1px solid var(--line);
+  }
+  .bar .now { flex: 1; min-width: 0; text-align: center; }
+  .bar .now strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar .now small { color: var(--muted); }
+  .btn.read-on { background: var(--ok); border-color: var(--ok); color: #fff; }
+  .stage { flex: 1; position: relative; }
+  .stage iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #525659; }
+
+  .empty {
+    position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center;
+  }
+  .empty .card {
+    max-width: 440px; padding: 40px 32px; border: 2px dashed var(--line); border-radius: 18px; background: var(--panel);
+  }
+  .empty .heart { font-size: 44px; line-height: 1; color: var(--accent); }
+  .empty h2 { margin: 12px 0 6px; font-size: 19px; }
+  .empty p { margin: 0 0 18px; color: var(--muted); }
+
+  .drop-overlay {
+    position: fixed; inset: 0; z-index: 50; display: grid; place-items: center;
+    background: color-mix(in srgb, var(--accent) 18%, transparent); backdrop-filter: blur(2px);
+  }
+  .drop-overlay div {
+    pointer-events: none; padding: 28px 40px; border-radius: 16px; background: var(--panel);
+    border: 2px dashed var(--accent); font-size: 18px; box-shadow: var(--shadow);
+  }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 60;
+    padding: 10px 16px; border-radius: 10px; background: var(--ink); color: var(--bg);
+    box-shadow: var(--shadow); font-size: 13px;
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <aside>
+    <div class="brand">
+      <h1><span>♥</span> CVS Lectures</h1>
+      <p>Cardiovascular System</p>
+    </div>
+    <div class="progress">
+      <div class="bar"><div class="fill" id="progFill"></div></div>
+      <div class="label"><span id="progText">ยังไม่มีไฟล์</span><span id="progPct"></span></div>
+    </div>
+    <div class="add-row">
+      <button class="btn primary" id="addBtn">＋ เพิ่ม PDF</button>
+      <button class="btn" id="sortBtn" title="เรียงทั้งหมดตามชื่อไฟล์">เรียง A→Z</button>
+    </div>
+    <div class="tools">
+      <input id="search" type="search" placeholder="ค้นหา lecture…" autocomplete="off">
+    </div>
+    <ul class="list" id="list"></ul>
+    <div class="hint">
+      <kbd>Alt</kbd>+<kbd>←</kbd>/<kbd>→</kbd> lecture ก่อนหน้า/ถัดไป ·
+      ดับเบิลคลิกชื่อเพื่อเปลี่ยนชื่อ · ลากเพื่อสลับลำดับ
+    </div>
+  </aside>
+
+  <main>
+    <div class="bar">
+      <button class="btn" id="toggleSide" title="ซ่อน/แสดงรายชื่อ">☰</button>
+      <button class="btn" id="prevBtn">◀ ก่อนหน้า</button>
+      <div class="now">
+        <strong id="nowTitle">—</strong>
+        <small id="nowCount"></small>
+      </div>
+      <button class="btn" id="readBtn" disabled>อ่านจบแล้ว</button>
+      <button class="btn" id="nextBtn">ถัดไป ▶</button>
+    </div>
+    <div class="stage">
+      <iframe id="viewer" title="PDF viewer" hidden></iframe>
+      <div class="empty" id="empty">
+        <div class="card">
+          <div class="heart">♥</div>
+          <h2>เพิ่มไฟล์ lecture ของคุณ</h2>
+          <p>ลากไฟล์ PDF มาวางที่ไหนก็ได้ในหน้านี้ หรือกดปุ่มด้านล่าง<br>เลือกทีเดียวหลายไฟล์ได้ ไฟล์จะถูกเก็บไว้ในเบราว์เซอร์นี้</p>
+          <button class="btn primary" id="emptyAdd">＋ เลือกไฟล์ PDF</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<input type="file" id="picker" accept="application/pdf,.pdf" multiple hidden>
+<div class="drop-overlay" id="dropOverlay" hidden><div>วางไฟล์ PDF ตรงนี้</div></div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+  const LS_LAST = 'cvs.lastId', LS_COLLAPSED = 'cvs.collapsed';
+
+  let db = null;
+  let items = [];          // metadata only, sorted by .order
+  let currentId = null;
+  let currentUrl = null;
+  let dragId = null;
+  let renaming = null;     // { id, draft, fresh } — survives re-renders
+  let rendering = false;
+
+  /* ---------- storage helpers ---------- */
+  const lsGet = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
+  const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch {} };
+
+  function openDB() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open('cvs-viewer', 1);
+      req.onupgradeneeded = () => {
+        req.result.createObjectStore('meta', { keyPath: 'id' });
+        req.result.createObjectStore('blobs', { keyPath: 'id' });
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+  const done = (t) => new Promise((res, rej) => {
+    t.oncomplete = res; t.onerror = () => rej(t.error); t.onabort = () => rej(t.error);
+  });
+  const reqP = (r) => new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+
+  async function loadMeta() {
+    const all = await reqP(db.transaction('meta').objectStore('meta').getAll());
+    items = all.sort((a, b) => a.order - b.order);
+  }
+  async function saveMeta(list) {
+    const t = db.transaction('meta', 'readwrite');
+    list.forEach((m) => t.objectStore('meta').put(m));
+    await done(t);
+  }
+  const renumber = () => { items.forEach((m, i) => { m.order = i; }); return saveMeta(items); };
+
+  const newId = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+  const cleanTitle = (name) => name.replace(/\.pdf$/i, '').replace(/[_]+/g, ' ').trim();
+
+  /* ---------- actions ---------- */
+  async function addFiles(fileList) {
+    const pdfs = [...fileList].filter((f) => f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
+    if (!pdfs.length) { toast('รองรับเฉพาะไฟล์ PDF'); return; }
+    const seen = new Set(items.map((m) => m.name + '|' + m.size));
+    const fresh = pdfs.filter((f) => !seen.has(f.name + '|' + f.size))
+                      .sort((a, b) => collator.compare(a.name, b.name));
+    const skipped = pdfs.length - fresh.length;
+    if (!fresh.length) { toast('ไฟล์เหล่านี้มีอยู่แล้ว'); return; }
+
+    let order = items.length;
+    const added = fresh.map((f) => ({ id: newId(), name: f.name, title: cleanTitle(f.name), size: f.size, order: order++, read: false, file: f }));
+    try {
+      const t = db.transaction(['meta', 'blobs'], 'readwrite');
+      added.forEach(({ file, ...m }) => {
+        t.objectStore('meta').put(m);
+        t.objectStore('blobs').put({ id: m.id, blob: file });
+      });
+      await done(t);
+    } catch (err) {
+      console.error(err);
+      toast('บันทึกไฟล์ไม่สำเร็จ — พื้นที่เบราว์เซอร์อาจเต็ม');
+      return;
+    }
+    if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+
+    added.forEach(({ file, ...m }) => items.push(m));
+    toast(`เพิ่ม ${added.length} ไฟล์แล้ว` + (skipped ? ` (ข้าม ${skipped} ไฟล์ที่ซ้ำ)` : ''));
+    render();
+    if (!currentId) openItem(added[0].id);
+  }
+
+  async function openItem(id) {
+    const meta = items.find((m) => m.id === id);
+    if (!meta || id === currentId) return;
+    const rec = await reqP(db.transaction('blobs').objectStore('blobs').get(id));
+    if (!rec) { toast('ไม่พบข้อมูลไฟล์นี้'); return; }
+    if (currentUrl) URL.revokeObjectURL(currentUrl);
+    currentUrl = URL.createObjectURL(new Blob([rec.blob], { type: 'application/pdf' }));
+    currentId = id;
+    lsSet(LS_LAST, id);
+    $('viewer').src = currentUrl;
+    render();
+    const el = document.querySelector(`.item[data-id="${id}"]`);
+    if (el) el.scrollIntoView({ block: 'nearest' });
+  }
+
+  function step(dir) {
+    if (!items.length) return;
+    const i = items.findIndex((m) => m.id === currentId);
+    const next = i === -1 ? 0 : i + dir;
+    if (next < 0 || next >= items.length) return;
+    openItem(items[next].id);
+  }
+
+  async function toggleRead(id, value) {
+    const m = items.find((x) => x.id === id);
+    if (!m) return;
+    m.read = value ?? !m.read;
+    await saveMeta([m]);
+    render();
+  }
+
+  async function removeItem(id) {
+    const t = db.transaction(['meta', 'blobs'], 'readwrite');
+    t.objectStore('meta').delete(id);
+    t.objectStore('blobs').delete(id);
+    await done(t);
+    const idx = items.findIndex((m) => m.id === id);
+    items.splice(idx, 1);
+    await renumber();
+    if (currentId === id) {
+      currentId = null;
+      if (currentUrl) { URL.revokeObjectURL(currentUrl); currentUrl = null; }
+      $('viewer').removeAttribute('src');
+      const fallback = items[Math.min(idx, items.length - 1)];
+      if (fallback) { openItem(fallback.id); return; }
+    }
+    render();
+  }
+
+  async function sortByName() {
+    items.sort((a, b) => collator.compare(a.name, b.name));
+    await renumber();
+    render();
+    toast('เรียงตามชื่อไฟล์แล้ว');
+  }
+
+  async function move(id, targetId, after) {
+    if (id === targetId) return;
+    const from = items.findIndex((m) => m.id === id);
+    const [m] = items.splice(from, 1);
+    let to = items.findIndex((x) => x.id === targetId);
+    if (after) to += 1;
+    items.splice(to, 0, m);
+    await renumber();
+    render();
+  }
+
+  function startRename(m) {
+    renaming = { id: m.id, draft: m.title, fresh: true };
+    render();
+  }
+
+  async function finishRename(save) {
+    if (!renaming) return;
+    const { id, draft } = renaming;
+    renaming = null;
+    const m = items.find((x) => x.id === id);
+    const v = draft.trim();
+    if (save && m && v && v !== m.title) { m.title = v; await saveMeta([m]); }
+    render();
+  }
+
+  function renameInput() {
+    const input = document.createElement('input');
+    input.value = renaming.draft;
+    input.addEventListener('input', () => { renaming.draft = input.value; });
+    input.addEventListener('keydown', (e) => {
+      e.stopPropagation();
+      if (e.key === 'Enter') finishRename(true);
+      if (e.key === 'Escape') finishRename(false);
+    });
+    // a re-render removes the input and may fire blur — that is not the user leaving the field
+    input.addEventListener('blur', () => { if (!rendering) finishRename(true); });
+    ['click', 'dblclick', 'mousedown'].forEach((t) => input.addEventListener(t, (e) => e.stopPropagation()));
+    return input;
+  }
+
+  /* ---------- render ---------- */
+  function render() {
+    const q = $('search').value.trim().toLowerCase();
+    const list = $('list');
+    let renameEl = null;
+    rendering = true;
+    list.replaceChildren();
+
+    items.forEach((m, i) => {
+      if (q && !m.title.toLowerCase().includes(q) && !m.name.toLowerCase().includes(q)) return;
+      const li = document.createElement('li');
+      li.className = 'item' + (m.id === currentId ? ' active' : '') + (m.read ? ' read' : '');
+      li.dataset.id = m.id;
+      const isRenaming = renaming && renaming.id === m.id;
+      li.draggable = !isRenaming;
+      li.title = m.name;
+
+      const cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.checked = m.read; cb.title = 'อ่านจบแล้ว';
+      cb.addEventListener('click', (e) => e.stopPropagation());
+      cb.addEventListener('change', () => toggleRead(m.id, cb.checked));
+
+      const num = document.createElement('span');
+      num.className = 'num'; num.textContent = i + 1;
+
+      const title = document.createElement('span');
+      title.className = 'title';
+      if (isRenaming) { renameEl = renameInput(); title.append(renameEl); }
+      else title.textContent = m.title;
+
+      const del = document.createElement('button');
+      del.className = 'del'; del.textContent = '×'; del.title = 'ลบออกจากรายการ';
+      let armed = null;
+      del.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (armed) { clearTimeout(armed); removeItem(m.id); return; }
+        del.classList.add('confirm'); li.classList.add('has-confirm'); del.textContent = 'ลบ?';
+        armed = setTimeout(() => {
+          armed = null; del.classList.remove('confirm'); li.classList.remove('has-confirm'); del.textContent = '×';
+        }, 3000);
+      });
+
+      li.append(cb, num, title, del);
+      li.addEventListener('click', () => openItem(m.id));
+      li.addEventListener('dblclick', (e) => { e.preventDefault(); startRename(m); });
+
+      li.addEventListener('dragstart', (e) => {
+        dragId = m.id; li.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', m.id);
+      });
+      li.addEventListener('dragend', () => { dragId = null; li.classList.remove('dragging'); clearDropMarks(); });
+      li.addEventListener('dragover', (e) => {
+        if (!dragId) return;
+        e.preventDefault();
+        const after = e.offsetY > li.offsetHeight / 2;
+        clearDropMarks();
+        li.classList.add(after ? 'drop-after' : 'drop-before');
+      });
+      li.addEventListener('drop', (e) => {
+        if (!dragId) return;
+        e.preventDefault(); e.stopPropagation();
+        const after = li.classList.contains('drop-after');
+        clearDropMarks();
+        move(dragId, m.id, after);
+      });
+      list.append(li);
+    });
+    rendering = false;
+    if (renameEl) {
+      renameEl.focus();
+      if (renaming.fresh) { renameEl.select(); renaming.fresh = false; }
+      else renameEl.setSelectionRange(renameEl.value.length, renameEl.value.length);
+    }
+
+    // progress
+    const total = items.length, read = items.filter((m) => m.read).length;
+    $('progFill').style.width = total ? (read / total * 100) + '%' : '0';
+    $('progText').textContent = total ? `อ่านแล้ว ${read} / ${total}` : 'ยังไม่มีไฟล์';
+    $('progPct').textContent = total ? Math.round(read / total * 100) + '%' : '';
+
+    // viewer bar
+    const idx = items.findIndex((m) => m.id === currentId);
+    const cur = items[idx];
+    $('nowTitle').textContent = cur ? cur.title : '—';
+    $('nowCount').textContent = cur ? `Lecture ${idx + 1} จาก ${total}` : (total ? 'เลือก lecture จากรายการด้านซ้าย' : '');
+    $('prevBtn').disabled = !cur || idx === 0;
+    $('nextBtn').disabled = !total || idx === total - 1;
+    $('readBtn').disabled = !cur;
+    $('readBtn').classList.toggle('read-on', !!(cur && cur.read));
+    $('readBtn').textContent = cur && cur.read ? '✓ อ่านจบแล้ว' : 'อ่านจบแล้ว';
+    $('viewer').hidden = !cur;
+    $('empty').hidden = !!cur || total > 0;
+    document.title = cur ? `${cur.title} · CVS Lectures` : 'CVS Lectures';
+  }
+  const clearDropMarks = () => document.querySelectorAll('.drop-before, .drop-after')
+    .forEach((el) => el.classList.remove('drop-before', 'drop-after'));
+
+  let toastTimer = null;
+  function toast(msg) {
+    const t = $('toast');
+    t.textContent = msg; t.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { t.hidden = true; }, 2600);
+  }
+
+  /* ---------- wiring ---------- */
+  const pick = () => $('picker').click();
+  $('addBtn').addEventListener('click', pick);
+  $('emptyAdd').addEventListener('click', pick);
+  $('picker').addEventListener('change', (e) => { addFiles(e.target.files); e.target.value = ''; });
+  $('sortBtn').addEventListener('click', sortByName);
+  $('search').addEventListener('input', render);
+  $('prevBtn').addEventListener('click', () => step(-1));
+  $('nextBtn').addEventListener('click', () => step(1));
+  $('readBtn').addEventListener('click', () => currentId && toggleRead(currentId));
+  $('toggleSide').addEventListener('click', () => {
+    const c = $('app').classList.toggle('collapsed');
+    lsSet(LS_COLLAPSED, c ? '1' : '0');
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.target.matches && e.target.matches('input[type=search]')) return;
+    if (e.altKey && e.key === 'ArrowLeft') { e.preventDefault(); step(-1); }
+    if (e.altKey && e.key === 'ArrowRight') { e.preventDefault(); step(1); }
+  });
+
+  // File drop anywhere (the overlay sits above the PDF iframe while dragging)
+  const overlay = $('dropOverlay');
+  const isFileDrag = (e) => e.dataTransfer && [...e.dataTransfer.types].includes('Files');
+  window.addEventListener('dragenter', (e) => { if (isFileDrag(e)) overlay.hidden = false; });
+  window.addEventListener('dragover', (e) => { if (isFileDrag(e)) e.preventDefault(); });
+  window.addEventListener('drop', (e) => { if (isFileDrag(e)) e.preventDefault(); });
+  overlay.addEventListener('dragleave', (e) => { if (e.target === overlay) overlay.hidden = true; });
+  overlay.addEventListener('drop', (e) => {
+    e.preventDefault();
+    overlay.hidden = true;
+    addFiles(e.dataTransfer.files);
+  });
+
+  window.addEventListener('beforeunload', () => { if (currentUrl) URL.revokeObjectURL(currentUrl); });
+
+  /* ---------- boot ---------- */
+  (async () => {
+    if (lsGet(LS_COLLAPSED) === '1') $('app').classList.add('collapsed');
+    try {
+      db = await openDB();
+      await loadMeta();
+    } catch (err) {
+      console.error(err);
+      toast('เบราว์เซอร์นี้ไม่อนุญาตให้เก็บไฟล์ — ลองเปิดด้วย Chrome หรือ Edge');
+      render();
+      return;
+    }
+    render();
+    const last = lsGet(LS_LAST);
+    const start = items.find((m) => m.id === last) || items[0];
+    if (start) openItem(start.id);
+  })();
+})();
+</script>
+</body>
+</html>
