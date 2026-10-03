@@ -1,6 +1,6 @@
 // Service worker: lets the app open offline and be installed to the home screen.
 // Bump CACHE when shipping a new version so old files are cleared.
-const CACHE = 'cvs-v1';
+const CACHE = 'cvs-v2';
 const SHELL = [
   './',
   './index.html',
