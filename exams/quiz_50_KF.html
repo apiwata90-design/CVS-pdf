@@ -1,0 +1,780 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CVS Quiz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#FAFAFB; --surface:#FFFFFF; --ink:#18202E; --muted:#5B6474; --line:#E2E4EA;
+  --artery:#B3202E; --artery-soft:#FBEDEE; --vein:#2C5AA0; --vein-soft:#EDF2FA;
+  --ok:#1E7A4F; --ok-soft:#E8F4EE; --partial:#A86400; --partial-soft:#FBF2E2;
+  --grid:rgba(179,32,46,.08); --grid-strong:rgba(179,32,46,.17);
+  --font:"Anuphan","Leelawadee UI","Segoe UI","Noto Sans Thai","Thonburi",system-ui,sans-serif;
+  --r-sm:6px; --r-md:10px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#11141B; --surface:#191E28; --ink:#E7E9EF; --muted:#9AA3B2; --line:#2A303C;
+    --artery:#E25562; --artery-soft:#38191E; --vein:#77A2E6; --vein-soft:#1B2538;
+    --ok:#4DB886; --ok-soft:#15302A; --partial:#E3A443; --partial-soft:#33281A;
+    --grid:rgba(226,85,98,.10); --grid-strong:rgba(226,85,98,.22);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#11141B; --surface:#191E28; --ink:#E7E9EF; --muted:#9AA3B2; --line:#2A303C;
+  --artery:#E25562; --artery-soft:#38191E; --vein:#77A2E6; --vein-soft:#1B2538;
+  --ok:#4DB886; --ok-soft:#15302A; --partial:#E3A443; --partial-soft:#33281A;
+  --grid:rgba(226,85,98,.10); --grid-strong:rgba(226,85,98,.22);
+}
+*{box-sizing:border-box}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 170px)}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font);font-size:17px;line-height:1.65;font-variant-numeric:tabular-nums}
+button,select,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--vein);outline-offset:2px}
+.wrap{max-width:780px;margin:0 auto;padding:0 18px}
+
+/* header */
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.titlebar{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding-top:12px}
+.titlebar .sub{display:block}
+.resetbtn{flex:none;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:var(--r-sm);padding:6px 12px;font-weight:600;font-size:.9rem;color:var(--ink)}
+.resetbtn:hover{border-color:var(--artery);color:var(--artery)}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--surface);border-radius:var(--r-md);padding:10px 14px;display:flex;gap:14px;align-items:center;z-index:20;font-size:.95rem;box-shadow:0 6px 20px rgba(0,0,0,.2)}
+.toast button{background:none;border:0;color:inherit;font-weight:700;text-decoration:underline}
+.titlebar h1{font-size:1.15rem;font-weight:700;margin:0;letter-spacing:-.01em}
+.hublink{display:inline-block;margin-bottom:2px;font-size:.85rem;color:var(--muted);text-decoration:none}
+.hublink:hover{color:var(--ink)}
+.titlebar .sub{color:var(--muted);font-size:.88rem}
+nav.tabs{display:flex;gap:4px;margin-top:8px}
+nav.tabs button{background:none;border:0;padding:8px 12px;border-bottom:2px solid transparent;color:var(--muted);font-weight:600}
+nav.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--artery)}
+
+/* question number navigator */
+.qnav{display:flex;gap:8px;align-items:flex-start;margin:10px 0 4px}
+.qrow{display:flex;gap:6px;overflow-x:auto;flex:1;padding:3px 2px 6px;scrollbar-width:thin}
+.qnav.open .qrow{flex-wrap:wrap;overflow:visible;max-height:40vh;overflow-y:auto}
+.qc{flex:none;min-width:34px;height:34px;padding:0 6px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-weight:600;font-size:.88rem;color:var(--ink)}
+.qc.answered{background:var(--line)}
+.qc.ok{background:var(--ok);border-color:var(--ok);color:#fff}
+.qc.wrong{background:var(--artery);border-color:var(--artery);color:#fff}
+.qc.partial{background:var(--partial);border-color:var(--partial);color:#fff}
+.qc.flag{background:var(--vein);border-color:var(--vein);color:#fff}
+.qc.flag-ring{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--vein)}
+.qc.cur{outline:2px solid var(--ink);outline-offset:2px}
+.qexp{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:8px;height:34px;padding:0 10px;font-size:.85rem;margin-top:3px}
+.qlegend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.78rem;color:var(--muted);padding-bottom:10px}
+.qlegend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+
+/* toolbar */
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:16px 0}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:var(--r-sm);overflow:hidden}
+.seg button{border:0;background:var(--surface);padding:6px 12px;font-size:.92rem}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+select{border:1px solid var(--line);background:var(--surface);border-radius:var(--r-sm);padding:6px 8px;font-size:.92rem;max-width:100%}
+.timer{margin-left:auto;font-weight:600;color:var(--muted)}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:var(--r-sm);padding:8px 14px;font-weight:600}
+.btn.primary{background:var(--artery);border-color:var(--artery);color:#fff}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+
+/* question */
+.qhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-top:6px}
+.qnum{font-size:1.5rem;font-weight:700;letter-spacing:-.02em}
+.qnum small{font-size:.9rem;color:var(--muted);font-weight:500}
+.flag{background:none;border:1px solid var(--line);border-radius:var(--r-sm);padding:4px 10px;font-size:.85rem;color:var(--muted)}
+.flag[aria-pressed="true"]{border-color:var(--partial);color:var(--partial);background:var(--partial-soft)}
+.stem{margin:10px 0 16px;white-space:normal}
+.case{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--vein);border-radius:var(--r-sm);padding:12px 14px;margin:10px 0 18px}
+.case .lbl{font-size:.82rem;color:var(--vein);font-weight:600}
+figure{margin:12px 0 16px}
+.oldkey{margin-top:14px;padding:10px 12px;border:1px dashed var(--line);border-radius:var(--r-sm);color:var(--muted);font-size:.9rem}
+.oldkey b{display:block;margin-bottom:4px}
+figure img{display:block;width:100%;max-width:760px;height:auto;max-height:75vh;object-fit:contain;object-position:left top;border-radius:var(--r-sm);border:1px solid var(--line);background:#fff;cursor:zoom-in}
+figure img.zoom{position:fixed;inset:0;margin:auto;width:auto;max-width:96vw;max-height:96vh;object-position:center;border:0;background:transparent;z-index:1000;cursor:zoom-out;box-shadow:0 0 0 100vmax rgba(0,0,0,.8)}
+figcaption{font-size:.85rem;color:var(--muted)}
+
+.opts{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+.opt{display:flex;gap:12px;align-items:flex-start;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);padding:10px 14px}
+.opt .k{flex:none;width:28px;height:28px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;font-weight:700;font-size:.9rem}
+.opt[aria-pressed="true"]{border-color:var(--ink)}
+.opt[aria-pressed="true"] .k{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.opt.correct{border-color:var(--ok);background:var(--ok-soft)}
+.opt.correct .k{background:var(--ok);border-color:var(--ok);color:#fff}
+.opt.wrong{border-color:var(--artery);background:var(--artery-soft)}
+.opt.wrong .k{background:var(--artery);border-color:var(--artery);color:#fff}
+.opt:disabled{cursor:default}
+
+.item{border-top:1px solid var(--line);padding:14px 0}
+.item:first-of-type{border-top:0}
+.item .prompt{font-weight:600;margin-bottom:8px}
+.item .hint{font-size:.85rem;color:var(--muted);margin-bottom:6px}
+textarea{width:100%;min-height:68px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--surface);padding:8px 10px;resize:vertical}
+.checks{display:grid;gap:6px}
+.checks label{display:flex;gap:10px;align-items:flex-start;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-sm);padding:8px 12px}
+.checks label.correct{border-color:var(--ok);background:var(--ok-soft)}
+.checks label.wrong{border-color:var(--artery);background:var(--artery-soft)}
+.verdict{margin-top:10px;padding:10px 12px;border-radius:var(--r-sm);font-size:.95rem}
+.verdict.ok{background:var(--ok-soft)} .verdict.bad{background:var(--artery-soft)} .verdict.part{background:var(--partial-soft)}
+.verdict b{display:block}
+.override{display:inline-flex;gap:6px;margin-top:8px}
+.override button{border:1px solid var(--line);background:var(--surface);border-radius:var(--r-sm);padding:3px 10px;font-size:.85rem}
+.override button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+
+.explain{margin-top:18px;padding:14px 16px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md)}
+.explain h3{margin:0 0 6px;font-size:1rem}
+.disagree{display:inline-block;font-size:.8rem;color:var(--artery);background:var(--artery-soft);padding:1px 8px;border-radius:4px;margin-left:6px}
+.unverified{display:inline-block;font-size:.8rem;color:var(--partial);background:var(--partial-soft);padding:1px 8px;border-radius:4px;margin-left:6px}
+.refs{margin-top:12px;display:grid;gap:6px}
+.ref{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:baseline;font-size:.93rem}
+.ref a{color:var(--vein)}
+.hot{font-size:.78rem;padding:1px 8px;border-radius:999px;background:var(--artery-soft);color:var(--artery);font-weight:600}
+.tier{font-size:.78rem;padding:1px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+
+.chain{display:flex;flex-wrap:wrap;align-items:center;gap:6px 4px;margin:8px 0 4px}
+.chain .st{background:var(--vein-soft);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:3px 9px;font-weight:600;font-size:.93rem}
+.chain .st.ans{background:var(--ok-soft);border-color:var(--ok)}
+.chain .ar{color:var(--muted);font-weight:700}
+ol.steps{margin:6px 0 0;padding-left:22px;font-size:.93rem}
+ol.steps li{margin:2px 0}
+.explain h4{margin:14px 0 4px;font-size:.95rem}
+.answerline{padding:10px 12px;border-left:4px solid var(--ok,#1a7f4b);background:rgba(26,127,75,.07);border-radius:var(--r-sm)}
+.answerline p{margin:0 0 2px}
+ul.kc,ol.kc{margin:4px 0;padding-left:1.3em}
+ul.kc li,ol.kc li{margin:3px 0}
+.trap{margin-top:8px;padding:8px 10px;border-radius:var(--r-sm);background:rgba(217,119,6,.10);border-left:4px solid #d97706}
+.trap b{display:block;margin-bottom:2px}
+.auditnote{color:var(--muted);font-size:.85rem;margin-top:12px}
+.why{display:block;font-size:.85rem;color:var(--muted);margin-top:3px}
+.opt.correct .why,.opt.wrong .why{color:var(--ink)}
+.doubt{margin-top:12px;border:1px dashed var(--line);background:none;border-radius:var(--r-sm);padding:4px 10px;font-size:.85rem;color:var(--muted)}
+.doubt[aria-pressed="true"]{border-style:solid;border-color:var(--partial);color:var(--partial);background:var(--partial-soft)}
+.nav{display:flex;justify-content:space-between;gap:10px;margin:22px 0 40px}
+
+/* guide + summary */
+section.panel h2{font-size:1.25rem;margin:22px 0 6px;letter-spacing:-.01em}
+section.panel p.lead{color:var(--muted);margin:0 0 14px}
+.bar{display:flex;height:14px;border-radius:999px;overflow:hidden;border:1px solid var(--line);margin:8px 0 10px}
+.bar span{display:block;height:100%}
+table{width:100%;border-collapse:collapse;font-size:.93rem}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:600}
+.tablewrap{overflow-x:auto}
+.read{border:1px solid var(--line);background:var(--surface);border-radius:var(--r-md);padding:12px 14px;margin-bottom:8px}
+.read .top{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:baseline}
+.read .where{font-weight:700;color:var(--ink)}
+.read a.where{color:var(--vein)}
+.read .meta{font-size:.88rem;color:var(--muted);margin-top:4px}
+.jump{border:0;background:var(--vein-soft);color:var(--vein);border-radius:4px;padding:0 7px;margin:2px 3px 0 0;font-size:.85rem}
+.tierhead{display:flex;align-items:center;gap:10px;margin:20px 0 8px}
+.tierhead .dot{width:10px;height:10px;border-radius:50%}
+.tierhead h3{margin:0;font-size:1.02rem}
+.repbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;background:var(--vein-soft);border:1px solid var(--line);border-radius:var(--r-md);padding:10px 14px;margin:16px 0 4px}
+.repbar b{font-size:1rem}
+.repbar .rp{color:var(--muted);font-size:.9rem}
+.repbar .btn{margin-left:auto;padding:5px 12px;font-size:.88rem}
+.meter{flex-basis:100%;height:6px;border-radius:999px;background:var(--line);overflow:hidden}
+.meter span{display:block;height:100%;background:var(--ok)}
+.qc.again{background:var(--artery-soft);border-color:var(--artery);color:var(--artery)}
+.lcard{border:1px solid var(--line);background:var(--surface);border-radius:var(--r-md);margin:12px 0;overflow:hidden}
+.lcard>.lh{padding:12px 14px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline}
+.lcard>.lh .ln{font-weight:700;font-size:1.05rem}
+.lcard>.lh .lm{color:var(--muted);font-size:.88rem}
+.topic{display:grid;grid-template-columns:76px 1fr;gap:4px 12px;padding:12px 14px;border-top:1px solid var(--line)}
+.topic:first-of-type{border-top:0}
+.topic .pg{font-weight:700;font-size:.95rem;line-height:1.4}
+.topic .pg a{color:var(--vein)}
+.topic .pg .td{display:block;margin-top:6px;width:8px;height:8px;border-radius:50%}
+.topic .hd{font-weight:600}
+.topic .sm{color:var(--muted);font-size:.9rem}
+.topic ul.focus{margin:6px 0 2px;padding-left:18px;font-size:.93rem}
+.topic ul.focus li{margin:2px 0}
+.topic ul.focus .yr{color:var(--muted);font-size:.82rem;margin-left:4px}
+.topic.support .hd,.topic.support .pg{color:var(--muted);font-weight:500}
+.topic.other{background:var(--paper)}
+.subhead{padding:8px 14px;font-size:.82rem;color:var(--muted);background:var(--paper);border-top:1px solid var(--line)}
+.big{font-size:2.6rem;font-weight:700;letter-spacing:-.03em;line-height:1.1}
+.empty{color:var(--muted);border:1px dashed var(--line);border-radius:var(--r-md);padding:14px}
+.hidden{display:none!important}
+@media (max-width:560px){ body{font-size:16px} .timer{margin-left:0} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="titlebar"><div><a class="hublink hidden" id="hubLink" href="#">← รวมข้อสอบ</a><h1 id="title">CVS Quiz</h1><span class="sub" id="subtitle"></span></div><button class="resetbtn" id="resetBtn" title="ล้างคำตอบทั้งหมดของชุดนี้"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4.5h4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>รีเซ็ต</button></div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" aria-selected="true" data-tab="quiz">ทำข้อสอบ</button>
+      <button role="tab" aria-selected="false" data-tab="guide">Guidereader</button>
+      <button role="tab" aria-selected="false" data-tab="summary">สรุปผล</button>
+    </nav>
+    <div class="qnav" id="qnav"><div class="qrow" id="qrow" aria-label="เลขข้อ"></div><button class="qexp" id="qexp" aria-expanded="false">ดูทั้งหมด</button></div>
+    <div class="qlegend"><span><i style="background:var(--ok)"></i>ถูก</span><span><i style="background:var(--artery)"></i>ผิด</span><span><i style="background:var(--partial)"></i>ถูกบางส่วน</span><span><i style="background:var(--vein)"></i>ปักธง</span><span><i style="background:var(--line)"></i>ตอบแล้ว รอตรวจ</span><span id="qdone"></span></div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section id="tab-quiz" class="panel">
+    <div id="repbar" class="repbar hidden"></div>
+    <div class="toolbar" id="toolbar">
+      <div class="seg" role="group" aria-label="โหมด">
+        <button data-mode="practice" aria-pressed="true">ฝึก (เฉลยทันที)</button>
+        <button data-mode="exam" aria-pressed="false">จับเวลา</button>
+      </div>
+      <select id="filterLecture" aria-label="กรองตาม Lecture"></select>
+      <select id="filterStatus" aria-label="กรองตามสถานะ">
+        <option value="all">ทุกข้อ</option>
+        <option value="wrong">เฉพาะข้อที่ผิด</option>
+        <option value="flagged">เฉพาะข้อที่ปักธง</option>
+        <option value="blank">ยังไม่ได้ทำ</option>
+      </select>
+      <span class="timer" id="timer"></span>
+    </div>
+    <div id="question"></div>
+    <div class="nav">
+      <button class="btn" id="prev">ข้อก่อนหน้า</button>
+      <button class="btn primary hidden" id="submitAll">ส่งคำตอบทั้งหมด</button>
+      <button class="btn" id="next">ข้อถัดไป</button>
+    </div>
+  </section>
+
+  <section id="tab-guide" class="panel hidden"></section>
+  <section id="tab-summary" class="panel hidden"></section>
+</main>
+
+<script type="application/json" id="quiz-data">
+{"meta": {"set_id": "50_KF", "year": 50, "type": "KF", "title": "CVS KF Med PSU 50", "source_file": "Exam_CVS/KF/KF_CVS [Med PSU 50].pdf", "time_limit_min": 120, "recall_topics": [{"n": "9–14", "topic": "ตารางค่า BP/HR/CVP/PCWP/CO/SVR → ชนิดของ shock (ดูปี 46–48)", "lecture_guess": ["CC1", "SDL1"]}, {"n": "9–14", "topic": "การเลือก vasopressor: epinephrine / norepinephrine / dopamine / dobutamine ตามชนิด shock", "lecture_guess": ["CC1"]}, {"n": "9–14", "topic": "ผลแล็บ troponin ผู้ป่วย 5 คน — ใครเป็น MI (คำนวณ delta)", "lecture_guess": ["L16"]}, {"n": "9–14", "topic": "อ่าน ECG: ผนังที่ขาดเลือด, STEMI vs NSTEMI, หลอดเลือดที่อุดตัน", "lecture_guess": ["L03", "CC2", "CC3"]}, {"n": "9–14", "topic": "TOF: 4 ลักษณะ, pathophysiology ของ hypoxic spell", "lecture_guess": ["L11"]}], "recall_note": "ข้อสอบจริง 14 ข้อ จำมาได้ครบเพียง 4 case (1, 2, 5, 8); ไม่มีไฟล์เฉลย — ร่างเฉลยเองทั้งหมด", "lecture_base": "../lectures/", "hub_url": "./"}, "lectures": {"L01": {"title": "Mediastinum & gross anatomy of the heart", "file": "L1_Medias_AnatatomyHeart.pdf"}, "L02": {"title": "Electrical activity of the heart", "file": "L2_Electrical activity of the heart -MED69.pdf"}, "L03": {"title": "Electrocardiography", "file": "L3_Electrocardiography.pdf"}, "L04": {"title": "Cardiac cycle & cardiac output", "file": "L4_Cardiac cycle and cardiac output.pdf"}, "L05": {"title": "Development of CVS", "file": "L5_Embryo CVS.pdf"}, "L06": {"title": "Histology of heart & blood vessels", "file": "L6_Histology of the heart and blood vessels .pdf"}, "L07": {"title": "Hemodynamics & microcirculation", "file": "L7_Hemodynamics  Microcirculations.pdf"}, "L08": {"title": "Antianginal drugs", "file": "L8_Anti-Anginal 1-2569.pdf"}, "L09": {"title": "Antiarrhythmic drugs", "file": "L9_AntiArrhythmic for MED 1-2569.pdf"}, "L10": {"title": "Regulation of circulatory system", "file": "L10_Regulation of CVS.pdf"}, "L11": {"title": "Common congenital heart disease", "file": "L11_Common congenital heart disease .pdf"}, "L12": {"title": "Roentgenological anatomy (CXR)", "file": "L12_Cardiovascular structures on CXR.pdf"}, "L13": {"title": "Antihypertensive agents", "file": "L13_Med_antihypertensive agent 1-2569.pdf"}, "L14": {"title": "Hemodynamic disorders & CV pathology", "file": "L14_Hemodynamic disorders and cardiovascular diseases 2567-Chayut.pdf"}, "L15": {"title": "Circulation in specific vascular beds", "file": "L15_Circulation in specific vascular beds.pdf"}, "L16": {"title": "Laboratory investigation in CVS", "file": "L16_Laboratory investigation in CVS_68_WS.pdf"}, "L17": {"title": "Exercise physiology", "file": "L17_exercise physiology 2025.pdf"}, "CC1": {"title": "Clinical correlation I: Shock", "file": "Clinical correlation 1_shock อ.วีรพงศ์.pdf"}, "CC2": {"title": "Clinical correlation II: ECG", "file": "Clinical correlation2_ECG_sheet_241068.pdf"}, "CC3": {"title": "Clinical correlation III: CAD", "file": "clinical correlation3_2021.pdf"}, "CC4": {"title": "Clinical correlation IV: Heart failure", "file": "Clinicalcorrelation5_Heart failure.pdf"}, "CC5": {"title": "Clinical correlation V: Vascular disorders", "file": "clinical correlation4_CVS-sectionI 2025.pdf"}, "CCX": {"title": "Clinical: Common congenital heart disease", "file": "clinical_congenital.pdf"}, "SDL1": {"title": "SDL Circulatory shock", "file": "SDL Circulatory shock.pdf"}, "LAB1": {"title": "Talk lab 1: Gross heart & great vessels", "file": "Talk lab1_Gross heart and great vv.pdf"}, "LAB3": {"title": "Talk lab 3: ECG interpretation", "file": "Talk lab3_accurate-electrocardiogram-interpretation-2008.pdf"}, "LAB3M": {"title": "ECG lab manual 2025", "file": "บทปฏิบัติการคลื่นไฟฟ้าหัวใจ-2025 (2).pdf"}, "LAB4": {"title": "Talk lab 4", "file": "TalkLab4 - CVS.pdf"}}, "questions": [{"id": "50-KF-01", "n": 1, "type": "KF", "case": "ผู้ป่วยอาเจียนและท้องเสียรุนแรง 6 ชั่วโมงหลังกินส้มตำ ต่อมาปากแห้ง วิงเวียนศีรษะ หน้ามืด ตาลาย คล้ายจะเป็นลม แพทย์ให้สารน้ำทางหลอดเลือดดำและยาแก้อาเจียน", "items": [{"id": "1.1", "prompt": "จงบอกลำดับการเปลี่ยนแปลง cardiovascular parameters ที่ทำให้วิงเวียน หน้ามืด คล้ายจะเป็นลม", "format": "short", "accepted": ["venous return", "preload"], "keywords_all": ["cardiac output"], "mechanism": ["อาเจียน + ท้องเสีย → เสียน้ำและเกลือแร่", "Plasma volume ↓", "Venous return ↓ → preload (EDV) ↓", "Stroke volume ↓ → cardiac output ↓", "MAP ↓", {"s": "Cerebral perfusion ↓ → หน้ามืด/เป็นลม", "answer": true}], "explanation": "เสียน้ำ → volume ↓ → venous return ↓ → SV ↓ → CO ↓ → BP ↓ → เลือดไปสมองลดลง"}, {"id": "1.2", "prompt": "Cardiovascular reflex ใดตอบสนองเร็วที่สุดเพื่อช่วยให้อาการดีขึ้น", "format": "short", "accepted": ["baroreceptor", "baroreflex"], "explanation": "Baroreceptor reflex (carotid sinus, aortic arch) — ตอบสนองภายในวินาที"}, {"id": "1.3", "prompt": "ระบบประสาทอัตโนมัติตอบสนองอย่างไร จาก reflex ในข้อ 1.2", "format": "short", "accepted": ["sympathetic"], "keywords_all": ["parasympathetic"], "explanation": "Sympathetic เพิ่มขึ้น และ parasympathetic (vagal) ลดลง"}, {"id": "1.4", "prompt": "จาก reflex นี้ HR / cardiac contractility / TPR / venous capacitance เปลี่ยนอย่างไร", "format": "short", "accepted": ["hr เพิ่ม"], "keywords_all": ["capacitance"], "explanation": "• Heart rate: เพิ่ม (β1)\n• Cardiac contractility: เพิ่ม (β1)\n• Total peripheral resistance: เพิ่ม (α1 arteriolar constriction)\n• Venous capacitance: ลด (venoconstriction ดันเลือดกลับหัวใจ)"}, {"id": "1.5", "prompt": "การให้สารน้ำทางหลอดเลือดดำช่วยบรรเทาอาการได้หรือไม่ อย่างไร", "format": "short", "accepted": ["ได้", "venous return", "preload"], "mechanism": ["IV fluid → plasma volume ↑", "Venous return ↑ → preload ↑", {"s": "SV ↑ → CO ↑ (Frank–Starling)", "answer": true}, "MAP ↑ → cerebral perfusion ↑ → อาการดีขึ้น"], "explanation": "ได้ — ชดเชย volume ที่เสียไป → venous return/preload ↑ → CO และ BP กลับมา"}, {"id": "1.6", "prompt": "ขณะหน้ามืด renin / angiotensin II / ANP / aldosterone เปลี่ยนอย่างไร", "format": "short", "accepted": ["anp ลด"], "keywords_all": ["renin", "anp"], "explanation": "• Renin: เพิ่ม (renal perfusion ↓ + sympathetic β1 ที่ JG cell)\n• Angiotensin II: เพิ่ม\n• ANP: ลด (atrial stretch ลด)\n• Aldosterone: เพิ่ม (จาก Ang II)"}], "answer_verified": false, "answer_status": "drafted", "explanation_style": "both", "audit_note": "ไม่มีไฟล์เฉลยของ KF รุ่น 50 — ร่างเฉลยเองทั้งชุด", "key_concept": "• Hypovolemia จาก GI loss: volume ↓ → CO ↓ → BP ↓\n• ชดเชยเร็ว (วินาที) = baroreflex: HR ↑, contractility ↑, TPR ↑, venous capacitance ↓\n• ชดเชยช้า (นาที–ชั่วโมง) = RAAS ↑, ADH ↑, ANP ↓\nTrap: venous capacitance 'ลดลง' เมื่อ sympathetic เพิ่ม (venoconstriction) — ไม่ใช่เพิ่ม", "explanation": "GI fluid loss → hypovolemia → baroreflex (sympathetic ↑) + RAAS ↑, ANP ↓; แก้ด้วย IV fluid", "refs": [], "tags": {"discipline": "physiology", "bloom": "apply", "topic": "Hypovolemia & compensatory reflexes", "lecture_guess": ["L10", "CC1"]}}, {"id": "50-KF-02", "n": 2, "type": "KF", "case": "จงตอบคำถามเกี่ยวกับ O₂ transport และ cardiac output ระหว่างออกกำลังกาย", "items": [{"id": "2.1", "prompt": "กลไกใดที่เพิ่มการส่ง O₂ ให้พอกับ O₂ consumption ขณะออกกำลังกายสูงสุด", "format": "short", "accepted": ["cardiac output", "a-vo2", "oxygen extraction"], "explanation": "• Cardiac output ↑ (HR ↑ + SV ↑) — ปัจจัยหลัก\n• O₂ extraction ↑ (a-vO₂ difference กว้างขึ้น): Bohr effect (CO₂, H⁺, อุณหภูมิ ↑ → curve shift ขวา), capillary recruitment\n• Blood flow redistribution ไปกล้ามเนื้อ"}, {"id": "2.2", "prompt": "วาดกราฟความสัมพันธ์ระหว่าง O₂ consumption กับ O₂ content/saturation ใน artery และ vein เพื่อแสดง a-vO₂ difference", "format": "short", "accepted": ["arterial คงที่ venous ลด"], "keywords_all": ["arterial", "venous"], "explanation": "• Arterial O₂ content/saturation คงที่ (~20 mL/dL, ~97%)\n• Mixed-venous ลดลงเรื่อยๆ ตาม VO₂\n• a-vO₂ difference กว้างขึ้น (จาก ~5 เป็น ~15 mL/dL) — ใช้ตัดสินเอง (เหมือน 51_KF ข้อ 2.1)"}, {"id": "2.3", "prompt": "เปรียบเทียบ heart rate, stroke volume และ cardiac output ระหว่าง trained กับ untrained ขณะพักและขณะออกกำลังกายสูงสุด", "format": "short", "accepted": ["stroke volume"], "keywords_all": ["heart rate"], "explanation": "• ขณะพัก: CO เท่ากัน (~5 L/min); trained HR ต่ำกว่า (bradycardia) แต่ SV สูงกว่า\n• ขณะออกกำลังกายสูงสุด: HRmax ใกล้เคียงกัน (ขึ้นกับอายุ); trained SV สูงกว่ามาก → CO max สูงกว่า (~35 vs ~20 L/min)"}, {"id": "2.4", "prompt": "อธิบายความสัมพันธ์ระหว่าง VO₂max และ maximal cardiac output ของคนไม่ออกกำลังกายเทียบกับนักกีฬา", "format": "short", "accepted": ["linear", "proportional", "เป็นสัดส่วน"], "explanation": "VO₂max สัมพันธ์เชิงเส้น (เป็นสัดส่วนโดยตรง) กับ maximal CO (Fick: VO₂ = CO × a-vO₂ diff) — นักกีฬามี CO max สูงกว่า (จาก SV ใหญ่กว่า) จึงมี VO₂max สูงกว่า; CO เป็นปัจจัยจำกัด VO₂max หลัก"}], "answer_verified": false, "answer_status": "drafted", "explanation_style": "principle", "audit_note": "ไม่มีไฟล์เฉลย — ร่างเอง", "key_concept": "• Fick: VO₂ = CO × (CaO₂ − CvO₂)\n• การฝึกเพิ่ม SV (LV volume ↑, blood volume ↑) → HR พักต่ำลง และ CO max สูงขึ้น\n• VO₂max ถูกจำกัดด้วย cardiac output เป็นหลัก\nTrap: HRmax ไม่ได้เพิ่มจากการฝึก — สิ่งที่เพิ่มคือ SV", "explanation": "ออกกำลังกาย: CO ↑ และ O₂ extraction ↑; นักกีฬา SV ใหญ่กว่า → CO max และ VO₂max สูงกว่า", "refs": [], "tags": {"discipline": "physiology", "bloom": "understand", "topic": "Cardiovascular adaptation to training", "lecture_guess": ["L17"]}}, {"id": "50-KF-05", "n": 5, "type": "KF", "case": "หญิง 62 ปี ได้รับการวินิจฉัย stage 1 hypertension รักษาด้วย hydrochlorothiazide", "items": [{"id": "5.1", "prompt": "ยานี้เป็นยากลุ่มไหน", "format": "short", "accepted": ["thiazide"], "explanation": "Thiazide diuretic"}, {"id": "5.2", "prompt": "อธิบายกลไกของ hydrochlorothiazide ทั้งช่วงแรกและระยะยาวในการลดความดัน", "format": "short", "accepted": ["na-cl", "nacl", "na+/cl-"], "keywords_all": ["volume"], "mechanism": ["ยับยั้ง Na⁺–Cl⁻ symporter ที่ DCT", "ช่วงแรก: natriuresis → plasma volume ↓ → CO ↓ → BP ↓", {"s": "ระยะยาว: volume กลับใกล้ปกติ แต่ TPR ↓ (vasodilation)", "answer": true}], "explanation": "• ช่วงแรก: ขับ Na⁺/น้ำ → volume ↓ → CO ↓\n• ระยะยาว: TPR ↓ จาก vasodilation"}, {"id": "5.3", "prompt": "ผลข้างเคียงของยา 4 ข้อ", "format": "short", "accepted": ["hypokalemia", "hyperuricemia", "hyperglycemia", "hyperlipidemia", "hyponatremia", "hypercalcemia"], "explanation": "Hypokalemia, hyponatremia, hypomagnesemia, hyperuricemia, hyperglycemia, hyperlipidemia, hypercalcemia, orthostatic hypotension"}, {"id": "5.4", "prompt": "ข้อควรระวังในการใช้ยา 3 ข้อ", "format": "short", "accepted": ["gout", "diabetes", "hypokalemia", "digoxin", "sulfa", "lithium", "renal"], "explanation": "Gout, DM, hypokalemia (โดยเฉพาะผู้ใช้ digoxin), แพ้ sulfonamide, eGFR < 30, ใช้ร่วม lithium"}, {"id": "5.5", "prompt": "แนวทางปรับเปลี่ยนวิถีชีวิตเพื่อป้องกันความดันโลหิตสูง 5 ข้อ", "format": "short", "accepted": ["ลดเกลือ", "ออกกำลังกาย", "ลดน้ำหนัก", "งดสูบบุหรี่", "แอลกอฮอล์", "dash"], "explanation": "ลดเกลือ, ออกกำลังกาย, คุมน้ำหนัก, DASH diet, จำกัดแอลกอฮอล์, งดบุหรี่"}], "answer_verified": false, "answer_status": "drafted", "explanation_style": "both", "audit_note": "ไม่มีไฟล์เฉลย — ร่างเอง (โจทย์เดียวกับ 51_KF ข้อ 6)", "key_concept": "• โจทย์นี้ออกซ้ำทุกคำใน 51_KF ข้อ 6\n• Thiazide: DCT Na⁺–Cl⁻ symporter; ADR hyper-GLUC + hypo-K/Na/Mg\nTrap: thiazide ลด Ca²⁺ ในปัสสาวะ (hypercalcemia) ต่างจาก loop diuretic", "explanation": "Thiazide ลด volume (ช่วงแรก) แล้วลด TPR (ระยะยาว)", "refs": [], "tags": {"discipline": "pharmacology", "bloom": "understand", "topic": "Thiazide diuretics", "lecture_guess": ["L13"]}}, {"id": "50-KF-08", "n": 8, "type": "KF", "case": "ผู้ป่วยหญิงไข้ต่ำๆ 3 สัปดาห์ (มี vital signs และ abdominal PE) ฟังหัวใจได้ pansystolic murmur ดังที่สุดที่ apex (ต้นฉบับ: โจทย์เดียวกับ Med49 KF ข้อ 7)", "items": [{"id": "8.1", "prompt": "เชื้อที่เป็นสาเหตุบ่อยที่สุด", "format": "short", "accepted": ["viridans", "streptococcus viridans"], "explanation": "Viridans streptococci (subacute IE บนลิ้นที่ผิดปกติเดิม)"}, {"id": "8.2", "prompt": "ตำแหน่งพยาธิสภาพของโรค", "format": "short", "accepted": ["mitral"], "explanation": "Mitral valve (pansystolic murmur ที่ apex = mitral regurgitation)"}, {"id": "8.3", "prompt": "พยาธิสภาพในรูปเรียกว่าอะไร", "format": "short", "accepted": ["splinter hemorrhage", "splinter haemorrhage"], "explanation": "Splinter hemorrhages (เส้นเลือดออกใต้เล็บจาก microemboli/vasculitis)"}, {"id": "8.4", "prompt": "ให้การวินิจฉัยและบอก onset", "format": "short", "accepted": ["subacute infective endocarditis", "subacute"], "keywords_all": ["endocarditis"], "explanation": "Subacute infective endocarditis (อาการค่อยเป็นค่อยไป > 2–6 สัปดาห์; acute = วัน–สัปดาห์ มักจาก S. aureus)"}, {"id": "8.5", "prompt": "ปัจจัยเสี่ยง 2 ข้อ", "format": "short", "accepted": ["rheumatic", "valvular", "prosthetic", "dental", "ivdu", "injection drug", "mitral valve prolapse"], "explanation": "ลิ้นหัวใจผิดปกติเดิม (rheumatic heart disease, MVP, congenital), prosthetic valve, ทำฟัน/หัตถการ, IV drug use, ประวัติ IE"}, {"id": "8.6", "prompt": "ภาวะแทรกซ้อนที่พบบ่อย", "format": "short", "accepted": ["heart failure", "embol", "stroke", "abscess", "glomerulonephritis"], "explanation": "Heart failure (จาก valve destruction — พบบ่อยที่สุด), systemic embolism (stroke, splenic/renal infarct), mycotic aneurysm, glomerulonephritis, perivalvular abscess"}, {"id": "8.7", "prompt": "อาการที่พบได้บริเวณดวงตา", "format": "short", "accepted": ["roth spot", "conjunctival"], "explanation": "Roth spots (retinal hemorrhage มีจุดขาวตรงกลาง) และ conjunctival petechiae"}], "answer_verified": false, "answer_status": "drafted", "explanation_style": "principle", "audit_note": "ไม่มีไฟล์เฉลย — ร่างเอง", "key_concept": "• Peripheral stigmata ของ IE: splinter hemorrhage, Osler's node, Janeway lesion, Roth spot, conjunctival petechiae, clubbing (subacute)\n• Modified Duke: blood culture + echo\n• Subacute = viridans (ลิ้นผิดปกติเดิม); acute = S. aureus\nTrap: splinter hemorrhage พบได้ในคนปกติจากการบาดเจ็บ — ต้องดูร่วมกับไข้และ murmur", "image_caption": "เล็บมือ: เส้นสีแดงคล้ำแนวตั้งใต้เล็บ (splinter hemorrhages)", "explanation": "ไข้เรื้อรัง + murmur ใหม่ + splinter hemorrhage = subacute IE (viridans) ที่ mitral valve", "refs": [], "tags": {"discipline": "microbiology", "bloom": "apply", "topic": "Infective endocarditis", "lecture_guess": ["L14"]}, "image": "data:image/jpeg;base64,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"}], "guide": null}
+</script>
+<script>
+(function(){
+"use strict";
+var DATA = JSON.parse(document.getElementById("quiz-data").textContent);
+var META = DATA.meta || {}, QS = DATA.questions || [], LEC = DATA.lectures || {}, GUIDE = DATA.guide || null;
+if (META.hub_url) { var hubA = document.getElementById('hubLink'); hubA.href = META.hub_url; hubA.classList.remove('hidden'); }
+var KEY = "cvsquiz:" + (META.set_id || "default");
+var $ = function(s, r){ return (r||document).querySelector(s); };
+
+/* ---------- state ---------- */
+function freshState(mode){ return {mode:mode||"practice", idx:0, answers:{}, checked:{}, flags:{}, doubts:{}, overrides:{}, started:Date.now(), submitted:false, filterLecture:"all", filterStatus:"all"}; }
+var S = load() || freshState();
+S.doubts = S.doubts || {};
+var CTX = null;
+function repOn(){ return !!(S.rep && S.rep.active); }
+function X(){ return CTX || (repOn() ? S.rep : S); }
+function withMain(fn){ CTX = S; try{ return fn(); } finally { CTX = null; } }
+function instant(){ return S.mode === "practice" || repOn(); }
+function load(){ try{ var v = localStorage.getItem(KEY); return v ? JSON.parse(v) : null; }catch(e){ return null; } }
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+
+/* ---------- helpers ---------- */
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+function txt(s){ return esc(s).replace(/\n/g,"<br>"); }
+function norm(s){ return String(s||"").toLowerCase().replace(/[\s.,;:!?()\-–_/'"]+/g,""); }
+function lecName(id){ return LEC[id] ? id + " " + LEC[id].title : id; }
+function pagesStr(p){ if(!p||!p.length) return ""; return p[0]===p[p.length-1] ? "หน้า " + p[0] : "หน้า " + p[0] + "–" + p[p.length-1]; }
+function pdfHref(id, p){
+  var L = LEC[id]; if(!L || !L.file || !META.lecture_base) return null;
+  var href = META.lecture_base + encodeURI(L.file);
+  if(/\.pdf$/i.test(L.file) && p && p.length) href += "#page=" + p[0];
+  return href;
+}
+function lecturesOf(q){ return (q.refs||[]).map(function(r){ return r.lecture; }); }
+
+/* ---------- scoring ---------- */
+function autoMatch(item, text){
+  var t = norm(text); if(!t) return false;
+  var acc = item.accepted || [];
+  for(var i=0;i<acc.length;i++){ var a = norm(acc[i]); if(a && (t.indexOf(a)>=0 || a.indexOf(t)>=0 && t.length>=4)) return true; }
+  var kw = item.keywords_all || [];
+  if(kw.length && kw.every(function(k){ return t.indexOf(norm(k))>=0; })) return true;
+  return false;
+}
+function itemScore(q, item){
+  var a = (X().answers[q.id]||{})[item.id];
+  if(item.format === "select"){
+    var sel = (a && a.sel) || [], ans = item.answer || [];
+    if(!sel.length || !ans.length) return 0;
+    if(item.max_answers && sel.length > item.max_answers) return 0;
+    var hit = sel.filter(function(k){ return ans.indexOf(k)>=0; }).length;
+    return hit / ans.length;
+  }
+  var ov = (X().overrides[q.id]||{})[item.id];
+  if(ov === 1 || ov === 0) return ov;
+  return autoMatch(item, a && a.text) ? 1 : 0;
+}
+function qScore(q){
+  if(q.type === "MCQ"){ if(!q.answer) return null; return X().answers[q.id] === q.answer ? 1 : 0; }
+  var it = q.items || []; if(!it.length) return null;
+  var s = 0; it.forEach(function(i){ s += itemScore(q, i); }); return s / it.length;
+}
+function answered(q){
+  var a = X().answers[q.id]; if(a == null) return false;
+  if(q.type === "MCQ") return true;
+  return Object.keys(a).some(function(k){ var v=a[k]; return (v.text && v.text.trim()) || (v.sel && v.sel.length); });
+}
+function status(q){
+  if(!answered(q)) return "blank";
+  if(!X().checked[q.id]) return "answered";
+  var sc = qScore(q); if(sc == null) return "answered";
+  return sc >= 0.999 ? "ok" : sc <= 0.001 ? "wrong" : "partial";
+}
+
+var QMAP = {}; QS.forEach(function(q){ QMAP[q.id] = q; });
+function curQ(){ return repOn() ? QMAP[S.rep.queue[0]] : visible()[S.idx]; }
+
+/* ---------- filtering ---------- */
+function visible(){
+  return QS.filter(function(q){
+    if(S.filterLecture !== "all" && lecturesOf(q).indexOf(S.filterLecture) < 0) return false;
+    var st = status(q);
+    if(S.filterStatus === "wrong" && !(st === "wrong" || st === "partial")) return false;
+    if(S.filterStatus === "flagged" && !S.flags[q.id]) return false;
+    if(S.filterStatus === "blank" && st !== "blank") return false;
+    return true;
+  });
+}
+
+/* ---------- question number navigator ---------- */
+function renderGrid(){
+  var v = visible(), row = $("#qrow");
+  row.innerHTML = v.map(function(q, i){
+    var st = status(q), cls = "qc";
+    var graded = st === "ok" || st === "wrong" || st === "partial";
+    if(graded) cls += " " + st; else if(S.flags[q.id]) cls += " flag"; else if(st === "answered") cls += " answered";
+    if(graded && S.flags[q.id]) cls += " flag-ring";
+    if(i === S.idx) cls += " cur";
+    return '<button class="'+cls+'" data-goto="'+i+'" title="'+esc(q.type)+'">'+esc(q.n || i+1)+'</button>';
+  }).join("");
+  var cur = row.querySelector(".cur"); if(cur && !$("#qnav").classList.contains("open")) cur.scrollIntoView({block:"nearest", inline:"center"});
+  var done = QS.filter(function(q){ return status(q) !== "blank"; }).length;
+  $("#qdone").textContent = "ทำแล้ว " + done + "/" + QS.length;
+}
+$("#qrow").addEventListener("click", function(e){
+  var b = e.target.closest("[data-goto]"); if(!b || repOn()) return;
+  S.idx = +b.dataset.goto; showTab("quiz"); render();
+});
+$("#qexp").onclick = function(){ var n = $("#qnav"), o = n.classList.toggle("open"); this.setAttribute("aria-expanded", o); this.textContent = o ? "ย่อ" : "ดูทั้งหมด"; };
+
+/* ---------- question rendering ---------- */
+function figureHTML(q){ return q.image ? '<figure><img onclick="this.classList.toggle(\'zoom\')" title="กดเพื่อขยาย" src="'+esc(q.image)+'" alt="'+esc(q.image_caption||"ภาพประกอบโจทย์")+'">'+(q.image_caption?'<figcaption>'+txt(q.image_caption)+'</figcaption>':'')+'</figure>' : ""; }
+
+function refsHTML(q){
+  if(!q.refs || !q.refs.length) return "";
+  return '<div class="refs">' + q.refs.map(function(r){
+    var href = pdfHref(r.lecture, r.pages);
+    var where = esc(lecName(r.lecture)) + " " + pagesStr(r.pages);
+    var hot = r.hotspot ? (r.hotspot.years.length >= 2 ? '<span class="hot">ออกซ้ำ ' + r.hotspot.years.length + ' ปี</span>' : '<span class="tier">เคยออกปี ' + r.hotspot.years.join(", ") + '</span>') + '<span class="tier">Tier ' + r.hotspot.tier + '</span>' : "";
+    return '<div class="ref"><span>อ่านเพิ่ม:</span>' + (href ? '<a href="'+esc(href)+'" target="_blank" rel="noopener">'+where+'</a>' : '<b>'+where+'</b>') + hot + (r.note ? '<span style="color:var(--muted)">'+esc(r.note)+'</span>' : '') + '</div>';
+  }).join("") + '</div>';
+}
+function chainHTML(m){
+  if(!m || !m.length) return "";
+  var steps = m.map(function(x){ return typeof x === "string" ? {s:x} : x; });
+  var h = '<div class="chain">' + steps.map(function(x, i){ return (i ? '<span class="ar">→</span>' : '') + '<span class="st'+(x.answer?' ans':'')+'">'+esc(x.s)+'</span>'; }).join("") + '</div>';
+  if(steps.some(function(x){ return x.note; })) h += '<ol class="steps">' + steps.map(function(x, i){ return x.note ? '<li value="'+(i+1)+'"><b>'+esc(x.s)+'</b> — '+txt(x.note)+'</li>' : ''; }).join("") + '</ol>';
+  return h;
+}
+function badgeHTML(q){
+  if(q.answer_status === "source_disagree") return '<span class="disagree">เฉลยต้นฉบับอาจคลาดเคลื่อน</span>';
+  if(q.answer_status === "corrected") return '<span class="disagree">แก้เฉลยจากต้นฉบับแล้ว</span>';
+  if(q.answer_verified === false || q.answer_status === "drafted") return '<span class="unverified">เฉลยยังไม่ยืนยัน</span>';
+  return "";
+}
+/* key_concept -> readable blocks: "(1) … (2) …" or "a; b; c" become a list, "Trap:" becomes a warning box,
+   explicit "\n• " lines are kept as bullets */
+function listHTML(parts, ordered){ return '<'+(ordered?'ol':'ul')+' class="kc">' + parts.map(function(p){ return '<li>'+txt(p.trim())+'</li>'; }).join("") + '</'+(ordered?'ol':'ul')+'>'; }
+function kcHTML(s){
+  s = String(s||""); var trap = "", m = s.match(/\s*(?:Classic trap|Trap|จุดที่มักสับสน|จุดหลอก)\s*:\s*/i);
+  if(m){ trap = s.slice(m.index + m[0].length); s = s.slice(0, m.index); }
+  var body;
+  if(/\n\s*[•\-]/.test(s)){
+    var lines = s.split(/\n/).map(function(x){ return x.replace(/^\s*[•\-]\s*/, ""); }).filter(function(x){ return x.trim(); });
+    body = listHTML(lines);
+  } else if((s.match(/\(\d\)/g)||[]).length >= 2){
+    var pre = s.split(/\(\d\)\s*/), head = pre.shift();
+    body = (head.trim() ? '<div>'+txt(head.trim().replace(/[:：]\s*$/,""))+'</div>' : '') + listHTML(pre.filter(function(x){ return x.trim(); }).map(function(x){ return x.replace(/[;,]\s*$/,""); }), true);
+  } else if(s.split(/;\s+/).length >= 3){
+    body = listHTML(s.split(/;\s+/));
+  } else body = '<div>'+txt(s.trim())+'</div>';
+  if(trap) body += '<div class="trap"><b>⚠️ จุดที่มักสับสน</b> '+txt(trap.trim())+'</div>';
+  return body;
+}
+function explainHTML(q, extra){
+  var h = '<div class="explain"><h3>คำอธิบาย'+badgeHTML(q)+'</h3>';
+  if(q.explanation || extra) h += '<div class="answerline">'+(extra||"")+(q.explanation?'<div>'+txt(q.explanation)+'</div>':'')+'</div>';
+  if(q.mechanism && q.mechanism.length) h += '<h4>ลำดับกลไก</h4>' + chainHTML(q.mechanism);
+  if(q.key_concept) h += '<h4>หลักการ</h4>' + kcHTML(q.key_concept);
+  if(q.audit_note) h += '<p class="auditnote">หมายเหตุการตรวจเฉลย: '+txt(q.audit_note)+'</p>';
+  h += refsHTML(q);
+  if(q.source_answer) h += '<div class="oldkey"><b>เฉลยเดิมจากต้นฉบับ: '+esc(q.source_answer)+'</b>'+(q.source_answer_note?'<div>'+txt(q.source_answer_note)+'</div>':'')+'</div>';
+  h += '<button class="doubt" id="doubtBtn" aria-pressed="'+!!S.doubts[q.id]+'">'+(S.doubts[q.id] ? 'ทำเครื่องหมายว่าเฉลยน่าสงสัยแล้ว' : 'เฉลยข้อนี้น่าสงสัย')+'</button>';
+  return h + '</div>';
+}
+
+function renderMCQ(q){
+  var chosen = X().answers[q.id], reveal = !!X().checked[q.id];
+  var h = '<div class="stem">'+txt(q.stem)+'</div>' + figureHTML(q) + '<ul class="opts">';
+  (q.options||[]).forEach(function(o){
+    var cls = "";
+    if(reveal){ if(o.key === q.answer) cls = "correct"; else if(o.key === chosen) cls = "wrong"; }
+    h += '<li><button class="opt '+cls+'" data-opt="'+esc(o.key)+'" aria-pressed="'+(chosen===o.key)+'" '+(reveal?"disabled":"")+'><span class="k">'+esc(o.key)+'</span><span>'+txt(o.text)+(reveal && o.why ? '<span class="why">'+txt(o.why)+'</span>' : '')+'</span></button></li>';
+  });
+  h += '</ul>';
+  if(reveal) h += explainHTML(q, q.answer ? '<p><b>ตอบ '+esc(q.answer)+'</b></p>' : '');
+  return h;
+}
+
+function renderItems(q){
+  var reveal = !!X().checked[q.id], A = X().answers[q.id] || {}, h = "";
+  (q.items||[]).forEach(function(it, n){
+    var a = A[it.id] || {};
+    h += '<div class="item"><div class="prompt">'+(n+1)+'. '+txt(it.prompt)+'</div>';
+    if(it.format === "select"){
+      h += '<div class="hint">เลือกได้ไม่เกิน '+(it.max_answers||"—")+' ข้อ (เลือกเกินได้ 0 คะแนน)</div><div class="checks">';
+      (it.options||[]).forEach(function(o){
+        var on = (a.sel||[]).indexOf(o.key) >= 0, cls = "";
+        if(reveal){ if((it.answer||[]).indexOf(o.key) >= 0) cls = "correct"; else if(on) cls = "wrong"; }
+        h += '<label class="'+cls+'"><input type="checkbox" data-item="'+esc(it.id)+'" value="'+esc(o.key)+'" '+(on?"checked":"")+' '+(reveal?"disabled":"")+'><span>'+txt(o.text)+'</span></label>';
+      });
+      h += '</div>';
+    } else {
+      h += '<textarea data-item="'+esc(it.id)+'" placeholder="พิมพ์คำตอบ" '+(reveal?"readonly":"")+'>'+esc(a.text||"")+'</textarea>';
+    }
+    if(reveal){
+      var sc = itemScore(q, it), cls2 = sc>=.999 ? "ok" : sc<=.001 ? "bad" : "part";
+      var ans = it.format === "select"
+        ? (it.options||[]).filter(function(o){ return (it.answer||[]).indexOf(o.key)>=0; }).map(function(o){ return o.text; }).join(", ")
+        : (it.accepted||[]).join(" / ");
+      h += '<div class="verdict '+cls2+'"><b>'+(sc>=.999?"ถูก":sc<=.001?"ยังไม่ถูก":"ถูกบางส่วน ("+Math.round(sc*100)+"%)")+'</b>คำตอบที่ยอมรับ: '+txt(ans)+(it.mechanism?chainHTML(it.mechanism):'')+(it.explanation?'<div style="margin-top:4px">'+txt(it.explanation)+'</div>':'');
+      if(it.format !== "select"){
+        var ov = (X().overrides[q.id]||{})[it.id];
+        h += '<div class="override" role="group" aria-label="ตัดสินเอง"><span style="font-size:.85rem;color:var(--muted)">ตัดสินเอง:</span>'
+          + '<button data-ov="1" data-item="'+esc(it.id)+'" aria-pressed="'+(ov===1)+'">ถูก</button>'
+          + '<button data-ov="0" data-item="'+esc(it.id)+'" aria-pressed="'+(ov===0)+'">ผิด</button>'
+          + '<button data-ov="auto" data-item="'+esc(it.id)+'" aria-pressed="'+(ov==null)+'">อัตโนมัติ</button></div>';
+      }
+      h += '</div>';
+    }
+    h += '</div>';
+  });
+  if(instant() && !reveal) h += '<button class="btn primary" id="checkQ" style="margin-top:8px">ตรวจคำตอบข้อนี้</button>';
+  if(reveal) h += explainHTML(q);
+  return h;
+}
+
+function renderKF(q){ return '<div class="case"><div class="lbl">สถานการณ์</div>'+txt(q.case||q.stem)+'</div>' + figureHTML(q) + renderItems(q); }
+function renderOSPE(q){ return '<div class="case"><div class="lbl">สถานี '+esc(q.station||"")+'</div>'+txt(q.stem||"")+'</div>' + figureHTML(q) + renderItems(q); }
+
+function render(){
+  var inRep = repOn();
+  $("#repbar").classList.toggle("hidden", !inRep);
+  $("#toolbar").classList.toggle("hidden", inRep);
+  document.querySelectorAll(".qlegend > span:not(#qdone)").forEach(function(el){ el.classList.toggle("hidden", inRep); });
+  if(inRep){ renderRep(); return; }
+  $("#prev").classList.remove("hidden"); $("#next").classList.remove("hidden"); $("#next").textContent = "ข้อถัดไป";
+  var v = visible(), box = $("#question");
+  if(S.idx >= v.length) S.idx = Math.max(0, v.length-1);
+  renderGrid();
+  if(!v.length){ box.innerHTML = '<div class="empty">ไม่มีข้อที่ตรงกับตัวกรองนี้ เปลี่ยนตัวกรองด้านบนเพื่อดูข้ออื่น</div>'; save(); return; }
+  var q = v[S.idx];
+  var body = q.type === "MCQ" ? renderMCQ(q) : q.type === "KF" ? renderKF(q) : renderOSPE(q);
+  box.innerHTML = '<div class="qhead"><div class="qnum">ข้อ '+esc(q.n||S.idx+1)+' <small>'+esc(q.type)+' · '+(S.idx+1)+'/'+v.length+'</small></div>'
+    + '<button class="flag" id="flagBtn" aria-pressed="'+!!S.flags[q.id]+'">ปักธงไว้ทบทวน</button></div>' + body;
+  $("#prev").disabled = S.idx === 0;
+  $("#next").disabled = S.idx >= v.length-1;
+  $("#submitAll").classList.toggle("hidden", !(S.mode === "exam" && !S.submitted));
+  save();
+}
+
+/* ---------- events ---------- */
+$("#question").addEventListener("click", function(e){
+  var q = curQ(); if(!q) return;
+  var opt = e.target.closest("[data-opt]");
+  if(opt && q.type === "MCQ" && !X().checked[q.id]){
+    X().answers[q.id] = opt.dataset.opt;
+    if(instant()) X().checked[q.id] = true;
+    render(); return;
+  }
+  if(e.target.id === "checkQ"){ X().checked[q.id] = true; render(); return; }
+  if(e.target.id === "flagBtn"){ S.flags[q.id] = !S.flags[q.id]; render(); return; }
+  if(e.target.id === "doubtBtn"){ if(S.doubts[q.id]) delete S.doubts[q.id]; else S.doubts[q.id] = 1; render(); return; }
+  var ov = e.target.closest("[data-ov]");
+  if(ov){
+    X().overrides[q.id] = X().overrides[q.id] || {};
+    var val = ov.dataset.ov; if(val === "auto") delete X().overrides[q.id][ov.dataset.item]; else X().overrides[q.id][ov.dataset.item] = +val;
+    render();
+  }
+});
+$("#question").addEventListener("change", function(e){
+  var q = curQ(); if(!q) return;
+  var el = e.target; if(!el.dataset.item) return;
+  X().answers[q.id] = X().answers[q.id] || {};
+  var a = X().answers[q.id][el.dataset.item] = X().answers[q.id][el.dataset.item] || {};
+  if(el.type === "checkbox"){ a.sel = a.sel || []; if(el.checked){ if(a.sel.indexOf(el.value)<0) a.sel.push(el.value); } else a.sel = a.sel.filter(function(k){ return k !== el.value; }); }
+  renderGrid(); save();
+});
+$("#question").addEventListener("input", function(e){
+  var q = curQ(); if(!q) return;
+  var el = e.target; if(el.tagName !== "TEXTAREA") return;
+  X().answers[q.id] = X().answers[q.id] || {};
+  (X().answers[q.id][el.dataset.item] = X().answers[q.id][el.dataset.item] || {}).text = el.value;
+  renderGrid(); save();
+});
+$("#prev").onclick = function(){ if(repOn()) return; if(S.idx>0){ S.idx--; render(); window.scrollTo(0,0); } };
+$("#next").onclick = function(){ if(repOn()){ repNext(); return; } if(S.idx<visible().length-1){ S.idx++; render(); window.scrollTo(0,0); } };
+$("#submitAll").onclick = function(){
+  var blank = QS.filter(function(q){ return !answered(q); }).length;
+  if(blank && !confirm("ยังไม่ได้ตอบ "+blank+" ข้อ ส่งคำตอบเลยไหม?")) return;
+  QS.forEach(function(q){ X().checked[q.id] = true; }); S.submitted = true; S.finished = Date.now();
+  render(); showTab("summary");
+};
+document.querySelectorAll(".seg [data-mode]").forEach(function(b){
+  b.onclick = function(){
+    if(b.dataset.mode === S.mode) return;
+    var hasWork = Object.keys(X().answers).length > 0;
+    if(hasWork && !confirm("เปลี่ยนโหมดจะเริ่มทำชุดนี้ใหม่ คำตอบเดิมจะถูกล้าง ดำเนินการต่อไหม?")) return;
+    var d = S.doubts; S = freshState(b.dataset.mode); S.doubts = d; syncControls(); render();
+  };
+});
+$("#filterLecture").onchange = function(){ S.filterLecture = this.value; S.idx = 0; render(); };
+$("#filterStatus").onchange = function(){ S.filterStatus = this.value; S.idx = 0; render(); };
+document.addEventListener("keydown", function(e){
+  if(/TEXTAREA|INPUT|SELECT/.test(document.activeElement.tagName)) return;
+  if(!$("#tab-quiz").classList.contains("hidden")){
+    if(e.key === "ArrowRight" || (e.key === "Enter" && repOn())) $("#next").click();
+    else if(e.key === "ArrowLeft") $("#prev").click();
+    else {
+      var q = repOn() ? QMAP[S.rep.queue[0]] : visible()[S.idx]; if(!q || q.type !== "MCQ") return;
+      var k = e.key.toUpperCase(), map = {"1":"A","2":"B","3":"C","4":"D","5":"E"}; k = map[k] || k;
+      var b = document.querySelector('[data-opt="'+k+'"]'); if(b && !b.disabled) b.click();
+    }
+  }
+});
+
+/* ---------- timer ---------- */
+setInterval(function(){
+  var t = $("#timer");
+  if(S.mode !== "exam" || repOn()){ t.textContent = ""; return; }
+  var end = S.finished || Date.now(), sec = Math.floor((end - S.started)/1000);
+  var lim = META.time_limit_min ? META.time_limit_min*60 : 0;
+  var show = lim ? Math.max(0, lim - sec) : sec;
+  t.textContent = (lim ? "เหลือ " : "เวลา ") + Math.floor(show/60) + ":" + ("0"+show%60).slice(-2);
+  if(lim && sec >= lim && !S.submitted){ QS.forEach(function(q){ X().checked[q.id] = true; }); S.submitted = true; S.finished = S.started + lim*1000; render(); showTab("summary"); }
+}, 1000);
+
+/* ---------- repeat mode: loop until every question is answered correctly ---------- */
+var REINSERT = 2; // a missed question comes back after this many other questions
+function shuffle(a){ for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)), t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
+function notYet(){ return withMain(function(){ return QS.filter(function(q){ return status(q) !== "ok"; }).map(function(q){ return q.id; }); }); }
+function startRep(ids){
+  if(!ids.length) return;
+  S.rep = {active:true, ids:ids.slice(), queue:shuffle(ids.slice()), answers:{}, checked:{}, overrides:{}, misses:{}, cleared:[], attempts:0, started:Date.now()};
+  showTab("quiz"); render();
+}
+function exitRep(){ if(S.rep) S.rep.active = false; render(); showTab("summary"); }
+function repNext(){
+  var R = S.rep, id = R.queue[0], q = QMAP[id]; if(!q) return;
+  if(!R.checked[id]){ toast(q.type === "MCQ" ? "เลือกคำตอบก่อน" : "กดตรวจคำตอบก่อนไปข้อถัดไป"); return; }
+  R.attempts++;
+  R.queue.shift();
+  if(qScore(q) >= 0.999){ R.cleared.push(id); }
+  else { R.misses[id] = (R.misses[id]||0) + 1; R.queue.splice(Math.min(REINSERT, R.queue.length), 0, id); }
+  delete R.answers[id]; delete R.checked[id]; delete R.overrides[id];
+  render(); window.scrollTo(0,0);
+}
+function renderRep(){
+  var R = S.rep, total = R.ids.length, done = R.cleared.length, box = $("#question");
+  $("#repbar").innerHTML = '<b>โหมดทำซ้ำ</b><span class="rp">ผ่านแล้ว '+done+'/'+total+'  เหลือ '+R.queue.length+' ข้อ  ตอบไปแล้ว '+R.attempts+' ครั้ง</span><button class="btn" id="repExit">ออกจากโหมดทำซ้ำ</button><div class="meter"><span style="width:'+(done/total*100)+'%"></span></div>';
+  $("#repExit").onclick = exitRep;
+  var curId = R.queue[0];
+  $("#qrow").innerHTML = R.ids.map(function(id){
+    var q = QMAP[id], cls = "qc";
+    if(R.cleared.indexOf(id) >= 0) cls += " ok"; else if(R.misses[id]) cls += " again";
+    if(id === curId) cls += " cur";
+    if(S.flags[id]) cls += R.cleared.indexOf(id) >= 0 ? " flag-ring" : "";
+    return '<button class="'+cls+'" disabled title="'+(R.misses[id] ? 'พลาด '+R.misses[id]+' ครั้ง' : '')+'">'+esc(q.n || id)+'</button>';
+  }).join("");
+  $("#qdone").textContent = "โหมดทำซ้ำ: เขียว = ผ่าน, ชมพู = เคยพลาด";
+  $("#prev").classList.add("hidden"); $("#submitAll").classList.add("hidden");
+  if(!R.queue.length){
+    var miss = R.ids.filter(function(id){ return R.misses[id]; }).sort(function(a,b){ return R.misses[b]-R.misses[a]; });
+    var h = '<h2>ผ่านครบ '+total+' ข้อ</h2><p class="lead">ตอบทั้งหมด '+R.attempts+' ครั้ง ข้อที่ต้องวนกลับมาหลายรอบคือจุดที่ควรอ่านซ้ำ</p>';
+    if(miss.length){
+      h += '<div class="tablewrap"><table><thead><tr><th>ข้อ</th><th>พลาดก่อนผ่าน</th><th>อ่าน</th></tr></thead><tbody>' + miss.map(function(id){
+        var q = QMAP[id];
+        return '<tr><td>ข้อ '+esc(q.n||id)+'</td><td>'+R.misses[id]+' ครั้ง</td><td>'+(q.refs||[]).map(function(r){ return esc(lecName(r.lecture))+' '+pagesStr(r.pages)+(r.focus ? '<div style="color:var(--muted);font-size:.85rem">'+esc(r.focus)+'</div>' : ''); }).join("<br>")+'</td></tr>';
+      }).join("") + '</tbody></table></div>';
+    }
+    h += '<div class="nav">' + (miss.length ? '<button class="btn primary" id="repAgain">วนอีกรอบเฉพาะข้อที่เคยพลาด ('+miss.length+')</button>' : '') + '<button class="btn" id="repDone">กลับไปหน้าสรุปผล</button></div>';
+    box.innerHTML = h;
+    $("#next").classList.add("hidden");
+    if($("#repAgain")) $("#repAgain").onclick = function(){ $("#next").classList.remove("hidden"); startRep(miss); };
+    $("#repDone").onclick = function(){ $("#next").classList.remove("hidden"); exitRep(); };
+    save(); return;
+  }
+  $("#next").classList.remove("hidden");
+  var q = QMAP[curId];
+  var body = q.type === "MCQ" ? renderMCQ(q) : q.type === "KF" ? renderKF(q) : renderOSPE(q);
+  box.innerHTML = '<div class="qhead"><div class="qnum">ข้อ '+esc(q.n||"")+' <small>'+esc(q.type)+(R.misses[curId] ? ' · วนกลับมารอบที่ '+(R.misses[curId]+1) : '')+'</small></div>'
+    + '<button class="flag" id="flagBtn" aria-pressed="'+!!S.flags[q.id]+'">ปักธงไว้ทบทวน</button></div>' + body;
+  var checked = !!R.checked[curId];
+  $("#next").textContent = !checked ? "ข้อถัดไป" : (qScore(q) >= 0.999 ? "ถูก ไปข้อถัดไป" : "ไปข้อถัดไป (ข้อนี้จะวนกลับมา)");
+  $("#next").disabled = !checked;
+  save();
+}
+
+/* ---------- reset with undo ---------- */
+var toastTimer = null;
+function toast(msg, actLabel, act){
+  var t = $(".toast"); if(t) t.remove(); clearTimeout(toastTimer);
+  t = document.createElement("div"); t.className = "toast"; t.setAttribute("role","status");
+  t.innerHTML = '<span>'+esc(msg)+'</span>' + (actLabel ? '<button>'+esc(actLabel)+'</button>' : '');
+  if(actLabel) t.querySelector("button").onclick = function(){ act(); t.remove(); };
+  document.body.appendChild(t); toastTimer = setTimeout(function(){ t.remove(); }, 6000);
+}
+function resetAll(){
+  var prev = JSON.stringify(S), d = S.doubts;
+  S = freshState(S.mode); S.doubts = d; syncControls(); showTab("quiz"); render();
+  toast("ล้างคำตอบทั้งหมดแล้ว", "เลิกทำ", function(){ S = JSON.parse(prev); syncControls(); render(); });
+}
+$("#resetBtn").onclick = resetAll;
+
+/* ---------- tabs ---------- */
+function showTab(name){
+  document.querySelectorAll("nav.tabs button").forEach(function(b){ b.setAttribute("aria-selected", b.dataset.tab === name); });
+  ["quiz","guide","summary"].forEach(function(n){ $("#tab-"+n).classList.toggle("hidden", n !== name); });
+  if(name === "guide") renderGuide();
+  if(name === "summary") renderSummary();
+  window.scrollTo(0,0);
+}
+document.querySelectorAll("nav.tabs button").forEach(function(b){ b.onclick = function(){ showTab(b.dataset.tab); }; });
+function jumpTo(qid){
+  if(S.rep) S.rep.active = false;
+  S.filterLecture = "all"; S.filterStatus = "all"; syncControls();
+  var i = QS.findIndex(function(q){ return q.id === qid; }); if(i >= 0){ S.idx = i; showTab("quiz"); render(); }
+}
+document.addEventListener("click", function(e){ var j = e.target.closest("[data-jump]"); if(j) jumpTo(j.dataset.jump); });
+function qLabel(qid){ var q = QS.find(function(x){ return x.id === qid; }); return q ? (q.n || qid) : qid; }
+
+/* ---------- guidereader ---------- */
+var PALETTE = ["var(--artery)","var(--vein)","var(--ok)","var(--partial)","#7A4FA0","#2F8C8C","#8C6A2F","#A0446E"];
+var TIER_TXT = {1:"ต้องอ่าน",2:"ควรอ่าน",3:"อ่านถ้ามีเวลา"}, TIER_COL = {1:"var(--artery)",2:"var(--partial)",3:"var(--muted)"};
+
+function pgLabel(p){ return p[0] === p[1] ? "หน้า " + p[0] : "หน้า " + p[0] + "–" + p[1]; }
+function jumps(ids){ return (ids||[]).map(function(id){ return '<button class="jump" data-jump="'+esc(id)+'">ข้อ '+esc(qLabel(id))+'</button>'; }).join(""); }
+
+function topicHTML(lec, t){
+  var href = pdfHref(lec, t.pages), cls = "topic" + (t.role === "supporting" ? " support" : "") + (t.in_set === false ? " other" : "");
+  var pg = href ? '<a href="'+esc(href)+'" target="_blank" rel="noopener">'+pgLabel(t.pages)+'</a>' : pgLabel(t.pages);
+  var h = '<div class="'+cls+'"><div class="pg">'+pg+'<span class="td" style="background:'+TIER_COL[t.tier]+'" title="Tier '+t.tier+'"></span></div><div>';
+  h += '<div class="hd">'+esc(t.heading)+(t.role === "supporting" ? ' <span class="tier">อ่านประกอบ</span>' : '')+'</div>';
+  if(t.summary) h += '<div class="sm">'+esc(t.summary)+'</div>';
+  if(t.focus && t.focus.length) h += '<ul class="focus">' + t.focus.map(function(f){ return '<li>'+esc(f.text)+'<span class="yr">'+(f.years||[]).join(", ")+'</span></li>'; }).join("") + '</ul>';
+  var meta = [];
+  if(t.years && t.years.length) meta.push((t.years.length >= 2 ? '<span class="hot">ออกซ้ำ '+t.years.length+' ปี</span>' : '<span class="tier">ออกปี '+t.years.join(", ")+'</span>'));
+  meta.push('<span class="tier">Tier '+t.tier+' '+TIER_TXT[t.tier]+'</span>');
+  h += '<div class="ref" style="margin-top:6px">'+meta.join("")+'</div>';
+  if(t.question_ids && t.question_ids.length) h += '<div class="meta" style="margin-top:4px;font-size:.88rem;color:var(--muted)">ข้อในชุดนี้: '+jumps(t.question_ids)+'</div>';
+  return h + '</div></div>';
+}
+
+function renderGuide(){ withMain(renderGuideMain); }
+function renderGuideMain(){
+  var P = $("#tab-guide");
+  if(!GUIDE || !GUIDE.lectures){ P.innerHTML = '<h2>Guidereader</h2><div class="empty">ชุดนี้ยังไม่มีข้อมูล guidereader สร้างใหม่ด้วย build_quiz.py พร้อมไฟล์ CVS_analysis.json</div>'; return; }
+  var h = '<h2>อ่านอะไรก่อนทำชุดนี้</h2><p class="lead">แยกตาม Lecture เรียงจากสำคัญมากไปน้อย ในแต่ละ Lecture เรียงหัวข้อตามลำดับหน้า ความสำคัญคิดจากข้อสอบปี ' + esc((GUIDE.recent_years||[]).join(", ")) + ' โดยให้น้ำหนักปีล่าสุดมากกว่า</p>';
+  h += '<div class="qlegend" style="padding:0 0 4px"><span><i style="background:'+TIER_COL[1]+';border-radius:50%"></i>Tier 1 ต้องอ่าน</span><span><i style="background:'+TIER_COL[2]+';border-radius:50%"></i>Tier 2 ควรอ่าน</span><span><i style="background:'+TIER_COL[3]+';border-radius:50%"></i>Tier 3 ถ้ามีเวลา</span></div>';
+
+  var comp = GUIDE.set_summary || [], total = comp.reduce(function(s,c){ return s + c.count; }, 0) || 1;
+  if(comp.length){
+    h += '<div class="bar">' + comp.map(function(c,i){ return '<span style="width:'+(c.count/total*100)+'%;background:'+PALETTE[i%PALETTE.length]+'" title="'+esc(lecName(c.lecture))+' '+c.count+' ข้อ"></span>'; }).join("") + '</div>';
+  }
+
+  GUIDE.lectures.forEach(function(L){
+    var href = pdfHref(L.lecture, null);
+    var inset = L.topics.filter(function(t){ return t.in_set !== false; }), other = L.topics.filter(function(t){ return t.in_set === false; });
+    h += '<div class="lcard"><div class="lh"><span class="ln">'+(href ? '<a href="'+esc(href)+'" target="_blank" rel="noopener" style="color:inherit">'+esc(lecName(L.lecture))+'</a>' : esc(lecName(L.lecture)))+'</span>'
+      + '<span class="lm">'+L.n_in_set+' ข้อในชุดนี้ · อ่าน '+L.pages_total+' หน้า · '+inset.length+' หัวข้อ</span></div>';
+    h += inset.map(function(t){ return topicHTML(L.lecture, t); }).join("");
+    if(other.length) h += '<div class="subhead">หัวข้ออื่นใน Lecture นี้ที่ออกบ่อย แต่ไม่อยู่ในชุดนี้</div>' + other.map(function(t){ return topicHTML(L.lecture, t); }).join("");
+    h += '</div>';
+  });
+
+  if(GUIDE.minimum_set) h += '<p class="lead" style="margin-top:14px">ภาพรวมทั้ง CVS: ชุดหน้าขั้นต่ำ ' + GUIDE.minimum_set.pages_total + ' หน้า ครอบคลุมราว ' + Math.round(GUIDE.minimum_set.coverage*100) + '% ของข้อสอบช่วงปีล่าสุด ดูรายละเอียดใน CVS_analysis</p>';
+
+  /* personal re-read list from wrong answers */
+  var miss = {};
+  QS.forEach(function(q){ var st = status(q); if(st === "wrong" || st === "partial"){ (q.refs||[]).forEach(function(r){
+    var k = r.lecture + "|" + (r.pages||[]).join("-");
+    var m = miss[k] = miss[k] || {heading: r.focus || "", pages:[r.pages[0], r.pages[r.pages.length-1]], tier:(r.hotspot||{}).tier || 3, years:(r.hotspot||{}).years || [], focus:[], question_ids:[], lecture:r.lecture};
+    m.question_ids.push(q.id);
+  }); } });
+  var mk = Object.keys(miss);
+  h += '<h2>อ่านซ่อมจากข้อที่ผิด</h2>' + (mk.length
+    ? '<div class="lcard">' + mk.map(function(k){ var m = miss[k]; m.heading = lecName(m.lecture) + (m.heading ? ": " + m.heading : ""); return topicHTML(m.lecture, m); }).join("") + '</div>'
+    : '<div class="empty">ยังไม่มีข้อที่ผิด เมื่อตรวจคำตอบแล้ว หน้าที่ควรอ่านซ่อมจะขึ้นที่นี่</div>');
+  P.innerHTML = h;
+}
+
+/* ---------- summary ---------- */
+function renderSummary(){ withMain(renderSummaryMain); }
+function renderSummaryMain(){
+  var P = $("#tab-summary"), checked = QS.filter(function(q){ return X().checked[q.id] && qScore(q) != null; });
+  var notYetIds = notYet(), notYetN = notYetIds.length;
+  var R = S.rep, resume = R && !R.active && R.queue.length ? '<button class="btn primary" id="repResume">ทำโหมดทำซ้ำต่อ (เหลือ '+R.queue.length+' ข้อ)</button>' : '';
+  var repBtn = notYetN ? '<button class="btn'+(resume ? '' : ' primary')+'" id="repStart">โหมดทำซ้ำ: วนข้อที่ยังไม่ถูกจนถูกครบ ('+notYetN+' ข้อ)</button>' : '';
+  function wireRep(){
+    if($("#repStart")) $("#repStart").onclick = function(){ startRep(notYetIds); };
+    if($("#repResume")) $("#repResume").onclick = function(){ S.rep.active = true; showTab("quiz"); render(); };
+  }
+  if(!checked.length){ P.innerHTML = '<h2>สรุปผล</h2><div class="empty">ยังไม่มีข้อที่ตรวจแล้ว ' + (S.mode==="exam" ? 'กด "ส่งคำตอบทั้งหมด" เมื่อทำเสร็จ' : 'ตอบหรือกดตรวจคำตอบในแต่ละข้อก่อน') + ' หรือเริ่มโหมดทำซ้ำเพื่อวนทั้งชุดจนตอบถูกทุกข้อ</div><div class="nav" style="justify-content:flex-start;gap:10px">'+resume+repBtn+'</div>'; wireRep(); return; }
+  var sum = 0; checked.forEach(function(q){ sum += qScore(q); });
+  var by = {};
+  checked.forEach(function(q){ var ls = lecturesOf(q); if(!ls.length) ls = ["ไม่ระบุ"]; ls.forEach(function(l){ var b = by[l] = by[l] || {n:0, s:0, ids:[]}; b.n++; b.s += qScore(q); if(qScore(q) < .999) b.ids.push(q.id); }); });
+  var unv = QS.filter(function(q){ return q.answer_verified === false; }).length;
+  var h = '<h2>สรุปผล</h2><div class="big">' + (Math.round(sum*10)/10) + ' / ' + checked.length + '</div><p class="lead">' + Math.round(sum/checked.length*100) + '% จากข้อที่ตรวจแล้ว ' + (checked.length < QS.length ? '(ยังไม่ตรวจ ' + (QS.length - checked.length) + ' ข้อ)' : '') + (unv ? ' มี ' + unv + ' ข้อที่เฉลยยังไม่ยืนยัน' : '') + '</p>';
+  h += '<div class="tablewrap"><table><thead><tr><th>Lecture</th><th>คะแนน</th><th>ข้อที่ควรทบทวน</th></tr></thead><tbody>' + Object.keys(by).sort(function(a,b){ return by[a].s/by[a].n - by[b].s/by[b].n; }).map(function(l){
+    var b = by[l]; return '<tr><td>'+esc(lecName(l))+'</td><td>'+(Math.round(b.s*10)/10)+'/'+b.n+'</td><td>'+b.ids.map(function(id){ return '<button class="jump" data-jump="'+esc(id)+'">ข้อ '+esc(qLabel(id))+'</button>'; }).join("")+'</td></tr>';
+  }).join("") + '</tbody></table></div>';
+  var dq = QS.filter(function(q){ return S.doubts[q.id]; });
+  h += '<h2>เฉลยที่ทำเครื่องหมายว่าน่าสงสัย</h2>' + (dq.length
+    ? '<p class="lead">'+dq.length+' ข้อ คัดลอกรายการไปวางใน Claude Code เพื่อตรวจเฉลยซ้ำ</p><p>'+dq.map(function(q){ return '<button class="jump" data-jump="'+esc(q.id)+'">ข้อ '+esc(q.n||q.id)+'</button>'; }).join("")+'</p><button class="btn" id="copyDoubt">คัดลอกรายการ</button> <span id="copied" style="color:var(--muted);font-size:.9rem"></span>'
+    : '<div class="empty">ยังไม่มี กด "เฉลยข้อนี้น่าสงสัย" ในกล่องคำอธิบายของข้อที่สงสัย</div>');
+  if(R && R.ids && R.ids.length) h += '<p class="lead" style="margin-top:14px">โหมดทำซ้ำล่าสุด: ผ่าน '+R.cleared.length+'/'+R.ids.length+' ข้อ ตอบไป '+R.attempts+' ครั้ง</p>';
+  h += '<div class="nav" style="flex-wrap:wrap">'+resume+repBtn+'<button class="btn" id="toGuide">ดูหน้าที่ควรอ่านซ่อม</button><button class="btn" id="restart">เริ่มชุดนี้ใหม่</button></div>';
+  P.innerHTML = h;
+  wireRep();
+  $("#toGuide").onclick = function(){ showTab("guide"); };
+  if($("#copyDoubt")) $("#copyDoubt").onclick = function(){
+    var t = "ตรวจเฉลยซ้ำ set " + (META.set_id||"") + ":\n" + dq.map(function(q){ return "- " + q.id + " (ข้อ " + (q.n||"") + ") เฉลยปัจจุบัน: " + (q.type === "MCQ" ? q.answer : "ดู items"); }).join("\n");
+    var done = function(){ $("#copied").textContent = "คัดลอกแล้ว"; };
+    if(navigator.clipboard) navigator.clipboard.writeText(t).then(done, function(){ prompt("คัดลอกข้อความนี้", t); });
+    else prompt("คัดลอกข้อความนี้", t);
+  };
+  $("#restart").onclick = resetAll;
+}
+
+/* ---------- init ---------- */
+function syncControls(){
+  document.querySelectorAll(".seg [data-mode]").forEach(function(b){ b.setAttribute("aria-pressed", b.dataset.mode === S.mode); });
+  $("#filterLecture").value = S.filterLecture; $("#filterStatus").value = S.filterStatus;
+}
+window.__quiz = { get S(){ return S; }, QMAP: QMAP }; // for automated testing
+(function init(){
+  document.title = META.title || "CVS Quiz";
+  $("#title").textContent = META.title || "CVS Quiz";
+  $("#subtitle").textContent = [META.year, META.type, QS.length + " ข้อ"].filter(Boolean).join("  ");
+  var ids = {}; QS.forEach(function(q){ lecturesOf(q).forEach(function(l){ ids[l] = 1; }); });
+  $("#filterLecture").innerHTML = '<option value="all">ทุก Lecture</option>' + Object.keys(ids).sort().map(function(l){ return '<option value="'+esc(l)+'">'+esc(lecName(l))+'</option>'; }).join("");
+  if(!QS.length){ $("#question").innerHTML = '<div class="empty">ไฟล์นี้ยังไม่มีข้อสอบ สร้างใหม่ด้วย build_quiz.py</div>'; return; }
+  syncControls(); render();
+})();
+})();
+</script>
+</body>
+</html>

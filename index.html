@@ -99,6 +99,12 @@
 
   .add-row, .tools { display: flex; gap: 6px; padding: 0 12px 10px; }
   .add-row .primary { flex: 1; }
+  .exam-row { padding: 0 12px 10px; }
+  .exam-link {
+    display: flex; align-items: baseline; justify-content: center; gap: 8px;
+    color: var(--ink); text-decoration: none; font-weight: 600;
+  }
+  .exam-link small { color: var(--muted); font-weight: 400; font-size: 12px; }
   .tools input {
     flex: 1; min-width: 0; padding: 7px 10px; border-radius: 8px;
     border: 1px solid var(--line); background: var(--bg);
@@ -306,6 +312,9 @@
       <button class="btn primary" id="addBtn">＋ เพิ่ม PDF</button>
       <button class="btn" id="sortBtn" title="เรียงทุกไฟล์ตามชื่อที่แสดง">เรียง A→Z</button>
       <button class="btn" id="linkBtn" title="ลิงก์ดาวน์โหลดไฟล์ lecture (ต้องใส่รหัส)">🔒</button>
+    </div>
+    <div class="exam-row">
+      <a class="btn exam-link" href="exams/index.html">📝 ข้อสอบเก่า <small>MCQ · KF · OSPE</small></a>
     </div>
     <div class="tools">
       <input id="search" type="search" placeholder="ค้นหา lecture…" autocomplete="off">

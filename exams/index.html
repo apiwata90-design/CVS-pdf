@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ข้อสอบเก่า · CVS</title>
+<link rel="icon" href="../icons/icon.svg" type="image/svg+xml">
+<script>
+  // Same light/dark choice as the lecture viewer (shared site storage).
+  (function () {
+    var t = null;
+    try { t = localStorage.getItem('cvs.theme'); } catch (e) {}
+    if (t !== 'light' && t !== 'dark') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    document.documentElement.dataset.theme = t;
+  })();
+</script>
+<style>
+  :root {
+    --bg: #f6f3f0; --panel: #fffdfb; --ink: #221c19; --muted: #776d66; --line: #e7e0d9; --hover: #f2ece6;
+    --accent: #b3261e; --accent-soft: #f7e3e0; --ok: #2e7d4f; --shadow: 0 8px 30px rgba(40, 20, 10, .10);
+    color-scheme: light;
+  }
+  :root[data-theme="dark"] {
+    --bg: #1c1c1c; --panel: #212121; --ink: #ececec; --muted: #9a9a9a; --line: #333; --hover: #2c2c2c;
+    --accent: #ff6f61; --accent-soft: #3a2422; --ok: #72d39b; --shadow: 0 8px 30px rgba(0, 0, 0, .5);
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.5 "Segoe UI", "Leelawadee UI", Tahoma, system-ui, sans-serif;
+    padding: calc(16px + env(safe-area-inset-top, 0px)) 16px calc(32px + env(safe-area-inset-bottom, 0px));
+  }
+  .wrap { max-width: 860px; margin: 0 auto; }
+  .back {
+    display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 8px;
+    border: 1px solid var(--line); background: var(--panel); color: var(--ink); text-decoration: none; font-size: 14px;
+  }
+  .back:hover { background: var(--hover); }
+  h1 { margin: 18px 0 2px; font-size: 24px; }
+  h1 span { color: var(--accent); }
+  .lead { margin: 0 0 22px; color: var(--muted); font-size: 14px; }
+  .cohort { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+  .cohort h2 { margin: 0 0 12px; font-size: 17px; display: flex; align-items: baseline; gap: 8px; }
+  .cohort h2 small { color: var(--muted); font-weight: 400; font-size: 13px; }
+  .sets { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+  a.set {
+    display: block; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg);
+    color: inherit; text-decoration: none; transition: border-color .15s, transform .15s;
+  }
+  a.set:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .set .top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .set b { font-size: 18px; letter-spacing: .3px; }
+  .set .n { color: var(--muted); font-size: 13px; white-space: nowrap; }
+  .set .what { color: var(--muted); font-size: 12px; margin: 2px 0 10px; }
+  .bar { height: 5px; border-radius: 99px; background: var(--line); overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--ok); }
+  .prog { margin-top: 4px; font-size: 12px; color: var(--muted); }
+  .missing { padding: 12px 14px; border-radius: 10px; border: 1px dashed var(--line); color: var(--muted); font-size: 13px; }
+  .foot { margin-top: 20px; color: var(--muted); font-size: 12.5px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="../index.html">← Lecture viewer</a>
+  <h1><span>♥</span> ข้อสอบเก่า CVS</h1>
+  <p class="lead">เลือกรุ่นและประเภทข้อสอบ · ความคืบหน้าเก็บไว้ในเครื่องนี้ (แยกแต่ละเครื่อง)</p>
+  <section class="cohort">
+    <h2>รุ่น 52 <small>121 ข้อ</small></h2>
+    <div class="sets">
+      <a class="set" href="quiz_52_MCQ.html" data-set="52_MCQ" data-total="94"><div class="top"><b>MCQ</b><span class="n">94 ข้อ</span></div><div class="what">Multiple Choice Question — ปรนัยเลือกตอบ</div><div class="bar"><i></i></div><div class="prog"></div></a>
+      <a class="set" href="quiz_52_KF.html" data-set="52_KF" data-total="9"><div class="top"><b>KF</b><span class="n">9 ข้อ</span></div><div class="what">Key Feature — สถานการณ์ จุดตัดสินใจ</div><div class="bar"><i></i></div><div class="prog"></div></a>
+      <a class="set" href="quiz_52_OSPE.html" data-set="52_OSPE" data-total="18"><div class="top"><b>OSPE</b><span class="n">18 ข้อ</span></div><div class="what">Objective Structured Practical Exam — สถานี/รูป</div><div class="bar"><i></i></div><div class="prog"></div></a>
+    </div>
+  </section>
+  <section class="cohort">
+    <h2>รุ่น 51 <small>65 ข้อ</small></h2>
+    <div class="sets">
+      <a class="set" href="quiz_51_MCQ.html" data-set="51_MCQ" data-total="39"><div class="top"><b>MCQ</b><span class="n">39 ข้อ</span></div><div class="what">Multiple Choice Question — ปรนัยเลือกตอบ</div><div class="bar"><i></i></div><div class="prog"></div></a>
+      <a class="set" href="quiz_51_KF.html" data-set="51_KF" data-total="9"><div class="top"><b>KF</b><span class="n">9 ข้อ</span></div><div class="what">Key Feature — สถานการณ์ จุดตัดสินใจ</div><div class="bar"><i></i></div><div class="prog"></div></a>
+      <a class="set" href="quiz_51_OSPE.html" data-set="51_OSPE" data-total="17"><div class="top"><b>OSPE</b><span class="n">17 ข้อ</span></div><div class="what">Objective Structured Practical Exam — สถานี/รูป</div><div class="bar"><i></i></div><div class="prog"></div></a>
+    </div>
+  </section>
+  <section class="cohort">
+    <h2>รุ่น 50 <small>57 ข้อ</small></h2>
+    <div class="sets">
+      <a class="set" href="quiz_50_MCQ.html" data-set="50_MCQ" data-total="36"><div class="top"><b>MCQ</b><span class="n">36 ข้อ</span></div><div class="what">Multiple Choice Question — ปรนัยเลือกตอบ</div><div class="bar"><i></i></div><div class="prog"></div></a>
+      <a class="set" href="quiz_50_KF.html" data-set="50_KF" data-total="4"><div class="top"><b>KF</b><span class="n">4 ข้อ</span></div><div class="what">Key Feature — สถานการณ์ จุดตัดสินใจ</div><div class="bar"><i></i></div><div class="prog"></div></a>
+      <a class="set" href="quiz_50_OSPE.html" data-set="50_OSPE" data-total="17"><div class="top"><b>OSPE</b><span class="n">17 ข้อ</span></div><div class="what">Objective Structured Practical Exam — สถานี/รูป</div><div class="bar"><i></i></div><div class="prog"></div></a>
+    </div>
+  </section>
+  <p class="foot">กดชุดไหนจะเปิดหน้าทำข้อสอบ มีแท็บ ทำข้อสอบ / Guidereader / สรุปผล · ในหน้าข้อสอบกด “← รวมข้อสอบ” เพื่อกลับมาหน้านี้</p>
+</div>
+<script>
+  // Show how far each set has been answered on this device.
+  document.querySelectorAll('a.set[data-set]').forEach(function (a) {
+    var s = null;
+    try { s = JSON.parse(localStorage.getItem('cvsquiz:' + a.dataset.set)); } catch (e) {}
+    var total = +a.dataset.total, done = 0;
+    if (s && s.answers) done = Math.min(total, Object.keys(s.answers).length);
+    a.querySelector('.bar i').style.width = (total ? done / total * 100 : 0) + '%';
+    a.querySelector('.prog').textContent = done ? ('ทำแล้ว ' + done + ' / ' + total) : 'ยังไม่ได้เริ่ม';
+  });
+</script>
+</body>
+</html>
