@@ -100,11 +100,33 @@
   .add-row, .tools { display: flex; gap: 6px; padding: 0 12px 10px; }
   .add-row .primary { flex: 1; }
   .exam-row { padding: 0 12px 10px; }
+  /* Old-exams button: warm orange gradient — stands out without glaring */
   .exam-link {
-    display: flex; align-items: baseline; justify-content: center; gap: 8px;
-    color: var(--ink); text-decoration: none; font-weight: 600;
+    --exam-a: #fa9a55; --exam-b: #ec6a30;
+    display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+    border: 0; border-radius: 12px; text-decoration: none; color: #fff;
+    background: linear-gradient(135deg, var(--exam-a), var(--exam-b));
+    box-shadow: 0 4px 14px rgba(242, 122, 61, .28), inset 0 1px 0 rgba(255, 255, 255, .25);
+    transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
   }
-  .exam-link small { color: var(--muted); font-weight: 400; font-size: 12px; }
+  .exam-link:hover {
+    background: linear-gradient(135deg, var(--exam-a), var(--exam-b));
+    transform: translateY(-1px); filter: brightness(1.04);
+    box-shadow: 0 6px 18px rgba(242, 122, 61, .36), inset 0 1px 0 rgba(255, 255, 255, .25);
+  }
+  .exam-link:active { transform: none; }
+  .exam-link .ico {
+    display: grid; place-items: center; width: 32px; height: 32px; flex: none;
+    border-radius: 9px; background: rgba(255, 255, 255, .22); font-size: 17px;
+  }
+  .exam-link .txt { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+  .exam-link b { font-size: 14.5px; text-shadow: 0 1px 1px rgba(150, 60, 10, .25); }
+  .exam-link small { font-size: 11.5px; opacity: .9; }
+  .exam-link .go { margin-left: auto; font-size: 18px; opacity: .85; }
+  :root[data-theme="dark"] .exam-link {
+    --exam-a: #e8935a; --exam-b: #c95f2e;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, .35), inset 0 1px 0 rgba(255, 255, 255, .12);
+  }
   .tools input {
     flex: 1; min-width: 0; padding: 7px 10px; border-radius: 8px;
     border: 1px solid var(--line); background: var(--bg);
@@ -314,7 +336,11 @@
       <button class="btn" id="linkBtn" title="ลิงก์ดาวน์โหลดไฟล์ lecture (ต้องใส่รหัส)">🔒</button>
     </div>
     <div class="exam-row">
-      <a class="btn exam-link" href="exams/index.html">📝 ข้อสอบเก่า <small>MCQ · KF · OSPE</small></a>
+      <a class="exam-link" href="exams/index.html">
+        <span class="ico">📝</span>
+        <span class="txt"><b>ข้อสอบเก่า</b><small>MCQ · KF · OSPE · รุ่น 50–52</small></span>
+        <span class="go">›</span>
+      </a>
     </div>
     <div class="tools">
       <input id="search" type="search" placeholder="ค้นหา lecture…" autocomplete="off">
