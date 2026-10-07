@@ -1414,6 +1414,22 @@
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
 
+  /* ---------- deep link from the exam quizzes: index.html#lecture=<file in lectures/>&page=N ---------- */
+  function openDeepLink() {
+    const h = new URLSearchParams(location.hash.slice(1));
+    const file = h.get('lecture');
+    if (!file) return false;
+    const meta = items.find((m) => m.src === 'lectures/' + file) || items.find((m) => m.name === file);
+    if (!meta) { toast('ไม่พบไฟล์ ' + file); return false; }
+    const page = Math.max(1, parseInt(h.get('page'), 10) || 1);
+    history.replaceState(null, '', location.pathname + location.search);
+    if (profOf(meta) !== activeProfile) { activeProfile = profOf(meta); lsSet(LS.profile, activeProfile); render(); }
+    meta.pos = { page, frac: 0 };   // openItem scrolls to meta.pos
+    if (meta.id === currentId) { scrollToPos(meta.pos); updateView(); } else openItem(meta.id);
+    return true;
+  }
+  window.addEventListener('hashchange', () => { if (db) openDeepLink(); });
+
   /* ---------- boot ---------- */
   (async () => {
     if (lsGet(LS.collapsed) === '1') $('app').classList.add('collapsed');
@@ -1428,6 +1444,7 @@
       return;
     }
     render();
+    if (openDeepLink()) return;
     const list = inProfile();
     const last = lsGet(LS.last(activeProfile)) || lsGet(LS.legacyLast);
     const start = list.find((m) => m.id === last) || list[0];

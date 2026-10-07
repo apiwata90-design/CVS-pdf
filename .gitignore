@@ -6,3 +6,7 @@ _preview*.png
 _preview*.html
 _test/
 !lectures/*.pdf
+
+# Exam analysis work (private — never publish exams/answers)
+Output/
+Exam_CVS/
